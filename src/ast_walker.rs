@@ -54,7 +54,8 @@ mod tests {
 
     #[test]
     fn direct_log_call() {
-        let source = "import structlog\nlog = structlog.get_logger()\nlog.info('payment_complete')\n";
+        let source =
+            "import structlog\nlog = structlog.get_logger()\nlog.info('payment_complete')\n";
         assert_eq!(find_log_calls(source), 1);
     }
 

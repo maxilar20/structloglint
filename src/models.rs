@@ -2,17 +2,24 @@ use colored::Colorize;
 use rustpython_parser::ast;
 use std::fmt;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    Pass,
+    Warning,
+    Fail,
+}
+
 pub struct RuleResult {
     pub rule_id: &'static str,
-    pub pass: bool,
+    pub status: Status,
     pub feedback: String,
 }
 
 impl RuleResult {
-    pub fn new(rule_id: &'static str, pass: bool, feedback: String) -> Self {
+    pub fn new(rule_id: &'static str, status: Status, feedback: String) -> Self {
         Self {
             rule_id,
-            pass,
+            status,
             feedback,
         }
     }
@@ -35,10 +42,10 @@ impl Finding {
 impl fmt::Display for Finding {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for result in &self.results {
-            let icon = if result.pass {
-                "OK".green()
-            } else {
-                "FAIL".red()
+            let icon = match result.status {
+                Status::Pass => "OK".green(),
+                Status::Warning => "WARN".yellow(),
+                Status::Fail => "FAIL".red(),
             };
             write!(f, "{icon} {}  {}", result.rule_id, result.feedback)?;
         }
