@@ -1,4 +1,4 @@
-use rustpython_parser::ast::{self, Suite};
+use rustpython_parser::ast::Suite;
 
 use crate::ast_walker::{self, ParentContext};
 use crate::models::Finding;
@@ -27,7 +27,7 @@ fn has_structlog_import(stmts: &[ast::Stmt]) -> bool {
         ast::Stmt::ImportFrom(import) => import
             .module
             .as_ref()
-            .is_some_and(|m| m.as_str() == "structlog"),
+            .is_some_and(|m| m.as_str() == "structlog" || m.as_str().starts_with("structlog.")),
         _ => false,
     })
 }
