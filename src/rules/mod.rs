@@ -5,12 +5,14 @@ use crate::models::RuleResult;
 mod sl001;
 mod sl002;
 mod sl003;
+mod sl004;
 
 pub fn check_all(call: &ast::ExprCall) -> Vec<RuleResult> {
     vec![
         sl001::check_sl001(call),
         sl002::check_sl002(call),
         sl003::check_sl003(call),
+        sl004::check_sl004(call),
     ]
 }
 

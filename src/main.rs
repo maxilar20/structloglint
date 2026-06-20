@@ -8,6 +8,9 @@ use structlog_linter::{analyzer, display};
 struct Args {
     #[arg(short, long)]
     file: String,
+
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,14 +19,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n-> Reading {}", args.file);
     let python_code = fs::read_to_string(&args.file)?;
 
-    println!("------------------ START ------------------");
-    println!("{}", &python_code[..python_code.len().min(200)]);
-    println!("------------------- END -------------------");
+    if args.verbose {
+        println!("------------------ START ------------------");
+        println!("{}", &python_code[..python_code.len().min(200)]);
+        println!("------------------- END -------------------");
+    }
 
     let findings = analyzer::analyze(&python_code, &args.file)?;
     println!("Found {} calls", findings.len());
 
-    display::print_findings(&findings, &python_code);
+    display::print_findings(&findings, &python_code, args.verbose);
 
     Ok(())
 }
