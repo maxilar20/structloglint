@@ -49,3 +49,7 @@ pub fn is_exception(expr: &ast::Expr) -> bool {
     };
     attr.attr.as_str() == "exception"
 }
+
+pub fn is_call_exception(call_expr: &ast::ExprCall) -> bool {
+    matches!(call_expr.func.as_ref(), ast::Expr::Attribute(attr) if attr.attr.as_str() == "exception")
+}
