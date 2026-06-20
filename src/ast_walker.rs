@@ -1,7 +1,12 @@
-use rustpython_parser::ast::{self, ExprCall, Stmt};
+use rustpython_parser::ast::{self, Stmt};
 
-/// Walk the AST recursively and collect all `log.<level>(...)` call expressions.
-pub fn collect_log_calls(stmt: &Stmt) -> Vec<&ExprCall> {
+use crate::models::{LogCall, ParentContext};
+
+/// Collect all `log.<level>(...)` call expressions along with their parent context.
+///
+/// The `parent` parameter indicates the immediate enclosing block type.
+/// When recursing into nested bodies, the caller passes the appropriate context.
+pub fn collect_log_calls(stmt: &Stmt, parent: ParentContext) -> Vec<LogCall<'_>> {
     match stmt {
         Stmt::Expr(expr_stmt) => match expr_stmt.value.as_ref() {
             ast::Expr::Call(call) => match call.func.as_ref() {
@@ -13,7 +18,7 @@ pub fn collect_log_calls(stmt: &Stmt) -> Vec<&ExprCall> {
                                 "debug" | "info" | "warning" | "error" | "exception" | "critical"
                             ) =>
                     {
-                        vec![call]
+                        vec![LogCall::new(call, parent)]
                     }
                     _ => vec![],
                 },
@@ -21,22 +26,81 @@ pub fn collect_log_calls(stmt: &Stmt) -> Vec<&ExprCall> {
             },
             _ => vec![],
         },
-        Stmt::If(if_stmt) => if_stmt.body.iter().flat_map(collect_log_calls).collect(),
-        Stmt::FunctionDef(func) => func.body.iter().flat_map(collect_log_calls).collect(),
-        Stmt::For(for_stmt) => for_stmt.body.iter().flat_map(collect_log_calls).collect(),
-        Stmt::While(while_stmt) => while_stmt.body.iter().flat_map(collect_log_calls).collect(),
+        Stmt::If(if_stmt) => {
+            let mut calls: Vec<LogCall> = if_stmt
+                .body
+                .iter()
+                .flat_map(|s| collect_log_calls(s, ParentContext::If))
+                .collect();
+            calls.extend(
+                if_stmt
+                    .orelse
+                    .iter()
+                    .flat_map(|s| collect_log_calls(s, parent)),
+            );
+            calls
+        }
+        Stmt::FunctionDef(func) => func
+            .body
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Function))
+            .collect(),
+        Stmt::For(for_stmt) => for_stmt
+            .body
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::For))
+            .chain(
+                for_stmt
+                    .orelse
+                    .iter()
+                    .flat_map(|s| collect_log_calls(s, parent)),
+            )
+            .collect(),
+        Stmt::While(while_stmt) => while_stmt
+            .body
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::While))
+            .chain(
+                while_stmt
+                    .orelse
+                    .iter()
+                    .flat_map(|s| collect_log_calls(s, parent)),
+            )
+            .collect(),
         Stmt::Try(try_stmt) => {
-            let mut calls = vec![];
-            calls.extend(try_stmt.body.iter().flat_map(collect_log_calls));
-            calls.extend(try_stmt.finalbody.iter().flat_map(collect_log_calls));
+            let mut calls: Vec<LogCall> = vec![];
+            calls.extend(
+                try_stmt
+                    .body
+                    .iter()
+                    .flat_map(|s| collect_log_calls(s, parent)),
+            );
+            calls.extend(
+                try_stmt
+                    .finalbody
+                    .iter()
+                    .flat_map(|s| collect_log_calls(s, parent)),
+            );
             for handler in &try_stmt.handlers {
                 let ast::ExceptHandler::ExceptHandler(h) = handler;
-                calls.extend(h.body.iter().flat_map(collect_log_calls));
+                calls.extend(
+                    h.body
+                        .iter()
+                        .flat_map(|s| collect_log_calls(s, ParentContext::Except)),
+                );
             }
             calls
         }
-        Stmt::With(with_stmt) => with_stmt.body.iter().flat_map(collect_log_calls).collect(),
-        Stmt::ClassDef(class_def) => class_def.body.iter().flat_map(collect_log_calls).collect(),
+        Stmt::With(with_stmt) => with_stmt
+            .body
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::With))
+            .collect(),
+        Stmt::ClassDef(class_def) => class_def
+            .body
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Class))
+            .collect(),
         _ => vec![],
     }
 }
@@ -49,7 +113,10 @@ mod tests {
 
     fn find_log_calls(source: &str) -> usize {
         let stmts = Suite::parse(source, "<test>").expect("parse failed");
-        stmts.iter().flat_map(collect_log_calls).count()
+        stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .count()
     }
 
     #[test]
@@ -127,6 +194,18 @@ for i in []:
     }
 
     #[test]
+    fn inside_for_orelse() {
+        let source = r#"import structlog
+log = structlog.get_logger()
+for i in []:
+    var = 1+1
+else:
+    log.info("else")
+"#;
+        assert_eq!(find_log_calls(source), 1);
+    }
+
+    #[test]
     fn inside_while_loop() {
         let source = r#"import structlog
 log = structlog.get_logger()
@@ -186,5 +265,88 @@ def f():
                 log.debug("c")
 "#;
         assert_eq!(find_log_calls(source), 3);
+    }
+
+    #[test]
+    fn context_except_block() {
+        let source = r#"import structlog
+log = structlog.get_logger()
+try:
+    pass
+except:
+    log.exception("boom")
+"#;
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<LogCall> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].context, ParentContext::Except);
+    }
+
+    #[test]
+    fn context_for_loop() {
+        let source = r#"import structlog
+log = structlog.get_logger()
+for i in []:
+    log.info("x")
+"#;
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<LogCall> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].context, ParentContext::For);
+    }
+
+    #[test]
+    fn context_while_loop() {
+        let source = r#"import structlog
+log = structlog.get_logger()
+while True:
+    log.info("x")
+"#;
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<LogCall> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].context, ParentContext::While);
+    }
+
+    #[test]
+    fn context_module_level() {
+        let source = "import structlog\nlog = structlog.get_logger()\nlog.info('hi')\n";
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<LogCall> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].context, ParentContext::Module);
+    }
+
+    #[test]
+    fn context_nested_retains_deepest() {
+        // Inside for -> if -> try -> except, context should be Except (most specific).
+        let source = r#"import structlog
+log = structlog.get_logger()
+for i in []:
+    if True:
+        try:
+            pass
+        except:
+            log.exception("inside except")
+"#;
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<LogCall> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].context, ParentContext::Except);
     }
 }

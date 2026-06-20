@@ -1,6 +1,7 @@
 use std::fs;
 
 use clap::Parser;
+use rustpython_parser::Parse;
 use structlog_linter::{analyzer, display};
 
 #[derive(Parser, Debug)]
@@ -25,7 +26,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("------------------- END -------------------");
     }
 
-    let findings = analyzer::analyze(&python_code, &args.file)?;
+    let stmts = rustpython_parser::ast::Suite::parse(&python_code, &args.file)?;
+    let findings = analyzer::analyze(&stmts);
     println!("Found {} calls", findings.len());
 
     display::print_findings(&findings, &python_code, args.verbose);

@@ -19,11 +19,11 @@ pub fn check_sl004(call: &ast::ExprCall) -> RuleResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rules::test_helpers::check_first_call;
+    use crate::rules::test_helpers::check_first_call_expr;
 
     #[test]
     fn passes_with_keyword_arguments() {
-        let result = check_first_call(
+        let result = check_first_call_expr(
             "log.info('subscription_cancelled', user_id='u_123', reason='too_expensive')",
             check_sl004,
         );
@@ -32,7 +32,7 @@ mod tests {
 
     #[test]
     fn fails_with_positional_placeholders() {
-        let result = check_first_call(
+        let result = check_first_call_expr(
             "log.info('subscription cancelled for {}'.format('u_123'))",
             check_sl004,
         );
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn fails_with_named_placeholders() {
-        let result = check_first_call(
+        let result = check_first_call_expr(
             "log.warning('user {user_id} cancelled: {reason}'.format(user_id='u_123', reason='too_expensive'))",
             check_sl004,
         );
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn passes_with_positional_placeholders_in_value() {
-        let result = check_first_call(
+        let result = check_first_call_expr(
             "log.info('subscription_cancelled', summary='u={} r={}'.format('u_123', 'expensive'))",
             check_sl004,
         );
@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn fails_with_format_on_variable() {
-        let result = check_first_call("log.info(var.format(user_id))", check_sl004);
+        let result = check_first_call_expr("log.info(var.format(user_id))", check_sl004);
         assert_eq!(result.status, Status::Fail, "{}", result.feedback);
     }
 }
