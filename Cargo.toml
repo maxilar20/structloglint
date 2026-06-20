@@ -1,13 +1,13 @@
 [package]
-name = "structlint"
+name = "structloglint"
 version = "0.1.0"
 edition = "2024"
 description = "A fast, opinionated linter for structlog log calls in Python"
 license = "MIT"
-repository = "https://github.com/maeldorne/structlint"
+repository = "https://github.com/maeldorne/structloglint"
 
 [[bin]]
-name = "structlint"
+name = "structloglint"
 path = "src/main.rs"
 
 [dependencies]

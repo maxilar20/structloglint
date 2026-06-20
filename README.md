@@ -1,4 +1,4 @@
-# structlint
+# structloglint
 
 A fast, opinionated linter for [structlog](https://www.structlog.org/) log calls in Python. Written in Rust.
 
@@ -7,7 +7,7 @@ A fast, opinionated linter for [structlog](https://www.structlog.org/) log calls
 ## Installation
 
 ```bash
-uv pip install structlint
+uv pip install structloglint
 ```
 
 ### From source
@@ -22,7 +22,7 @@ maturin develop --release
 ## Usage
 
 ```bash
-structlint --path src/ --verbose
+structloglint --path src/ --verbose
 ```
 
 See [RULES.md](RULES.md) for the full list of rules (SL001--SL009) and planned configuration options.
@@ -40,13 +40,13 @@ See [RULES.md](RULES.md) for the full list of rules (SL001--SL009) and planned c
 | Output | Colored diagnostics with source context, gutter markers, and underline spans |
 | Fix data model | `Fix` struct exists, SL008 generates fix suggestions |
 | Test data | Per-rule Python fixtures (`test_data/SL00x.py`) + comprehensive e-commerce example |
-| Python packaging | maturin build so `uv pip install structlint` works |
+| Python packaging | maturin build so `uv pip install structloglint` works |
 
 ### Must Have
 
 | Area | Detail | Status |
 |------|--------|--------|
-| `pyproject.toml` config | Parse `[tool.structlint]` for include/exclude, case style, max length, per-rule severity | not started (values hardcoded) |
+| `pyproject.toml` config | Parse `[tool.structloglint]` for include/exclude, case style, max length, per-rule severity | not started (values hardcoded) |
 | `--fix` flag | Apply auto-fixes in-place (SL008 fix model already exists) | not started |
 | CLI parity | `--file` single-file mode, `--event-case-style`, `--loop-log-level` flags | not started |
 | Pre-commit hook | `.pre-commit-hooks.yaml` so repos can add the linter to `.pre-commit-config.yaml` | not started |

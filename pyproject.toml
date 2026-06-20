@@ -3,7 +3,7 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "structlint"
+name = "structloglint"
 version = "0.1.0"
 description = "A fast, opinionated linter for structlog log calls in Python. Written in Rust."
 readme = "README.md"
@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/maeldorne/structlint"
+Repository = "https://github.com/maeldorne/structloglint"
 
 [tool.maturin]
 bindings = "bin"
