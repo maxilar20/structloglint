@@ -15,7 +15,7 @@ pub fn check_sl007(log_call: &LogCall, min_log_level: LogLevel) -> RuleResult {
             "logging at level `{min_log_level}` or above inside a loop body",
             min_log_level = min_log_level.as_str()
         );
-        return RuleResult::new("SL007", Status::Fail, feedback);
+        return RuleResult::new("SL007", Status::Warning, feedback);
     }
 
     RuleResult::new("SL007", Status::Pass, String::new())
@@ -59,7 +59,12 @@ mod tests {
     log.info("product_imported", product_id=product["id"])"#,
             checker,
         );
-        assert_eq!(rule_result.status, Status::Fail, "{}", rule_result.feedback);
+        assert_eq!(
+            rule_result.status,
+            Status::Warning,
+            "{}",
+            rule_result.feedback
+        );
     }
 
     #[test]
@@ -85,7 +90,12 @@ while i < len(products):
     i += 1"#,
             checker,
         );
-        assert_eq!(rule_result.status, Status::Fail, "{}", rule_result.feedback);
+        assert_eq!(
+            rule_result.status,
+            Status::Warning,
+            "{}",
+            rule_result.feedback
+        );
     }
 
     #[test]
@@ -110,7 +120,12 @@ else:
         log.info("processing_item", item_id=item.id)"#,
             checker,
         );
-        assert_eq!(rule_result.status, Status::Fail, "{}", rule_result.feedback);
+        assert_eq!(
+            rule_result.status,
+            Status::Warning,
+            "{}",
+            rule_result.feedback
+        );
     }
 
     #[test]

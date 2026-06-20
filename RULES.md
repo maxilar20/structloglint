@@ -240,7 +240,7 @@ NOTE: Only one level deep inside loop bodies is checked.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `loop-log-level` | string | `"debug"` | Maximum level allowed inside a loop body. Logs **above** this level are flagged. |
+| `loop-log-level` | string | `"info"` | Minimum level that triggers a flag inside a loop body. Logs **at or above** this level are flagged. |
 
 ---
 
@@ -350,8 +350,11 @@ The following rules are under consideration for future versions:
 include = ["src/**/*.py", "app/**/*.py"]
 exclude = ["tests/**", "migrations/**"]
 
+select = ["SL001", "SL002", "SL003", "SL004", "SL005", "SL006", "SL007", "SL008", "SL009"]
+ignore = ["SL007"]
 max-event-length = 40
 event-case-style = "snake_case"
+loop-log-level = "info"
 
 [tool.structloglint.rules]
 SL006 = "error"      # promote to error
@@ -366,9 +369,11 @@ SL007 = "off"        # disable loop check
 | `exclude` | list of globs | `[]` | File patterns to skip (takes precedence over `include`). |
 | `include-files` | list of paths | `[]` | Explicit file paths to check. |
 | `exclude-files` | list of paths | `[]` | Explicit file paths to skip. |
+| `select` | list of rules | (all) | Only run these rules. |
+| `ignore` | list of rules | (none) | Skip these rules (applied after `select`). |
 | `max-event-length` | integer | `30` | Maximum event string length (SL009). |
 | `event-case-style` | string | `"snake_case"` | Required event case style (SL008). |
-| `loop-log-level` | string | `"debug"` | Max log level allowed inside loops (SL007). |
+| `loop-log-level` | string | `"info"` | Minimum level that triggers a flag inside loops (SL007). |
 
 ### Per-rule severity overrides (`[tool.structloglint.rules]`)
 

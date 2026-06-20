@@ -22,7 +22,7 @@ pub fn check_sl009(log_call: &LogCall, event_length: usize) -> RuleResult {
 
     RuleResult::new(
         "SL009",
-        Status::Fail,
+        Status::Warning,
         format!(
             "event string \"{}\" exceeds maximum length of {}",
             event, event_length,
@@ -54,6 +54,6 @@ mod tests {
             r#"log.info("profile_updated_with_long_event_string", user_id="u_123")"#,
             checker(20),
         );
-        assert_eq!(result.status, Status::Fail, "{}", result.feedback);
+        assert_eq!(result.status, Status::Warning, "{}", result.feedback);
     }
 }

@@ -11,6 +11,42 @@ pub enum Status {
     Fail,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuleSeverity {
+    Error,
+    Warning,
+    Off,
+}
+
+impl RuleSeverity {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Error => "error",
+            Self::Warning => "warning",
+            Self::Off => "off",
+        }
+    }
+}
+
+impl std::str::FromStr for RuleSeverity {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "error" => Ok(Self::Error),
+            "warning" => Ok(Self::Warning),
+            "off" => Ok(Self::Off),
+            _ => Err(()),
+        }
+    }
+}
+
+impl std::fmt::Display for RuleSeverity {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
     Trace = 0,
