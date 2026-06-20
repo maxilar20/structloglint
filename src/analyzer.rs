@@ -1,4 +1,4 @@
-use rustpython_parser::ast::Suite;
+use rustpython_parser::ast::{self, Suite};
 
 use crate::ast_walker::{self, ParentContext};
 use crate::models::Finding;
