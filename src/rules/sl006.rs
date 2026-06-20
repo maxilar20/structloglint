@@ -1,7 +1,8 @@
 use rustpython_parser::ast;
 use rustpython_parser::ast::Keyword;
 
-use crate::models::{LogCall, LogLevel, ParentContext, RuleResult, Status};
+use crate::ast_walker::ParentContext;
+use crate::models::{LogCall, LogLevel, RuleResult, Status};
 
 fn keyword_is_exc_info(keyword: &Keyword) -> bool {
     if let Some(keyword_id) = &keyword.arg {

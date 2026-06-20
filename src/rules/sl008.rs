@@ -1,6 +1,7 @@
 use rustpython_parser::ast;
 
-use crate::models::{CaseStyle, LogCall, RuleResult, Status};
+use super::case_style::CaseStyle;
+use crate::models::{Fix, LogCall, RuleResult, Status};
 
 /// SL008 — Event string must match the configured case style.
 pub fn check_sl008(log_call: &LogCall, case_style: CaseStyle) -> RuleResult {
@@ -20,16 +21,22 @@ pub fn check_sl008(log_call: &LogCall, case_style: CaseStyle) -> RuleResult {
         return RuleResult::new("SL008", Status::Pass, String::new());
     }
 
+    let converted = case_style.convert(event);
+    let fix = Fix {
+        replacement: format!("\"{}\"", converted),
+        start: u32::from(constant.range.start()) as usize,
+        end: u32::from(constant.range.end()) as usize,
+    };
+
     RuleResult::new(
         "SL008",
         Status::Fail,
         format!(
             "Event string \"{}\" does not match {} style, expected \"{}\"",
-            event,
-            case_style,
-            case_style.convert(event),
+            event, case_style, converted,
         ),
     )
+    .with_fix(fix)
 }
 
 #[cfg(test)]

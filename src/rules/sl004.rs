@@ -1,6 +1,6 @@
 use rustpython_parser::ast;
 
-use crate::expr_helpers::is_format;
+use super::expr_helpers::is_format;
 use crate::models::{RuleResult, Status};
 
 pub fn check_sl004(call: &ast::ExprCall) -> RuleResult {

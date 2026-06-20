@@ -1,7 +1,7 @@
 use rustpython_parser::ast::Suite;
 
-use crate::ast_walker;
-use crate::models::{Finding, ParentContext};
+use crate::ast_walker::{self, ParentContext};
+use crate::models::Finding;
 use crate::rules;
 
 pub fn analyze<'a>(stmts: &'a Suite) -> Vec<Finding<'a>> {

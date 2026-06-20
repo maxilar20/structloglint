@@ -1,4 +1,5 @@
-use crate::models::{LogCall, LogLevel, ParentContext, RuleResult, Status};
+use crate::ast_walker::ParentContext;
+use crate::models::{LogCall, LogLevel, RuleResult, Status};
 
 /// SL005: `log.exception()` must only be used inside an `except` block.
 pub fn check_sl005(log_call: &LogCall) -> RuleResult {

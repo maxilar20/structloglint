@@ -1,5 +1,9 @@
-use crate::models::{CaseStyle, LogCall, LogLevel, RuleResult};
+use crate::models::{LogCall, LogLevel, RuleResult};
 
+use self::case_style::CaseStyle;
+
+mod case_style;
+mod expr_helpers;
 mod sl001;
 mod sl002;
 mod sl003;
@@ -26,8 +30,8 @@ pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
 
 #[cfg(test)]
 mod test_helpers {
-    use crate::ast_walker::collect_log_calls;
-    use crate::models::{LogCall, ParentContext, RuleResult};
+    use crate::ast_walker::{collect_log_calls, ParentContext};
+    use crate::models::{LogCall, RuleResult};
     use rustpython_parser::Parse;
     use rustpython_parser::ast::Suite;
 

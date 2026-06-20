@@ -1,6 +1,6 @@
 use rustpython_parser::ast;
 
-use crate::expr_helpers::is_fstring;
+use super::expr_helpers::is_fstring;
 use crate::models::{RuleResult, Status};
 
 pub fn check_sl002(call: &ast::ExprCall) -> RuleResult {

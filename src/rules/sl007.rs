@@ -1,4 +1,5 @@
-use crate::models::{LogCall, LogLevel, ParentContext, RuleResult, Status};
+use crate::ast_walker::ParentContext;
+use crate::models::{LogCall, LogLevel, RuleResult, Status};
 
 /// SL007 — Log call inside a loop body.
 pub fn check_sl007(log_call: &LogCall, min_log_level: LogLevel) -> RuleResult {

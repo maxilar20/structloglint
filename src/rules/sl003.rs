@@ -1,6 +1,6 @@
 use rustpython_parser::ast;
 
-use crate::expr_helpers::is_substitution;
+use super::expr_helpers::is_substitution;
 use crate::models::{RuleResult, Status};
 
 pub fn check_sl003(call: &ast::ExprCall) -> RuleResult {
