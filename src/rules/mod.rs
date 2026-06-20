@@ -30,7 +30,7 @@ pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
 
 #[cfg(test)]
 mod test_helpers {
-    use crate::ast_walker::{collect_log_calls, ParentContext};
+    use crate::ast_walker::{ParentContext, collect_log_calls};
     use crate::models::{LogCall, RuleResult};
     use rustpython_parser::Parse;
     use rustpython_parser::ast::Suite;

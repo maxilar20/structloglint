@@ -30,10 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let files: Vec<_> = WalkDir::new(&args.path)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.file_type().is_file()
-                && e.path().extension().is_some_and(|ext| ext == "py")
-        })
+        .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "py"))
         .collect();
 
     for file in &files {

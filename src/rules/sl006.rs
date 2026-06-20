@@ -13,10 +13,7 @@ fn keyword_is_exc_info(keyword: &Keyword) -> bool {
 }
 
 fn any_keyword_is_exc_info(log_call: &ast::ExprCall) -> bool {
-    log_call
-        .keywords
-        .iter()
-        .any(|keyword| keyword_is_exc_info(keyword))
+    log_call.keywords.iter().any(keyword_is_exc_info)
 }
 
 /// SL006 — error() inside except block without exc_info=True.

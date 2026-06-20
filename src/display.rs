@@ -80,7 +80,14 @@ pub fn print_diagnostics(
                 let underline_end = call_end_in_line.min(source_line.len());
                 let underline_width = underline_end.saturating_sub(underline_start).max(1);
 
-                write_source_context(w, line, source_line, underline_start, underline_width, result)?;
+                write_source_context(
+                    w,
+                    line,
+                    source_line,
+                    underline_start,
+                    underline_width,
+                    result,
+                )?;
             }
         }
     }
@@ -300,18 +307,17 @@ mod tests {
         let findings = analyzer::analyze(&stmts);
 
         let mut buf = Vec::new();
-        print_diagnostics(
-            &mut buf,
-            &findings,
-            "test.py",
-            &source,
-            OutputFormat::Full,
-        )
-        .unwrap();
+        print_diagnostics(&mut buf, &findings, "test.py", &source, OutputFormat::Full).unwrap();
 
         let output = String::from_utf8(buf).unwrap();
-        assert!(output.contains("|"), "full format should contain gutter pipes");
-        assert!(output.contains("^^^"), "full format should contain underline markers");
+        assert!(
+            output.contains("|"),
+            "full format should contain gutter pipes"
+        );
+        assert!(
+            output.contains("^^^"),
+            "full format should contain underline markers"
+        );
         assert!(
             output.contains("log.info"),
             "full format should show source line"
@@ -408,14 +414,7 @@ mod tests {
         let findings = analyzer::analyze(&stmts);
 
         let mut buf = Vec::new();
-        print_diagnostics(
-            &mut buf,
-            &findings,
-            "test.py",
-            &source,
-            OutputFormat::Full,
-        )
-        .unwrap();
+        print_diagnostics(&mut buf, &findings, "test.py", &source, OutputFormat::Full).unwrap();
 
         let output = String::from_utf8(buf).unwrap();
         let lines: Vec<&str> = output.lines().collect();
@@ -434,14 +433,7 @@ mod tests {
         let findings = analyzer::analyze(&stmts);
 
         let mut buf = Vec::new();
-        print_diagnostics(
-            &mut buf,
-            &findings,
-            "test.py",
-            &source,
-            OutputFormat::Full,
-        )
-        .unwrap();
+        print_diagnostics(&mut buf, &findings, "test.py", &source, OutputFormat::Full).unwrap();
 
         let output = String::from_utf8(buf).unwrap();
         assert!(output.contains("test.py:2:1:"));

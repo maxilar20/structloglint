@@ -2,6 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 pub enum CaseStyle {
     CamelCase,
     ConstantCase,
@@ -81,7 +82,11 @@ impl FromStr for CaseStyle {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::ALL.iter().find(|c| c.as_str() == s).copied().ok_or(())
+        Self::ALL
+            .iter()
+            .find(|c| c.as_str() == s)
+            .copied()
+            .ok_or(())
     }
 }
 

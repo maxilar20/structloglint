@@ -77,10 +77,7 @@ fn walk_body<'a>(body: &'a [Stmt], context: ParentContext) -> Vec<LogCall<'a>> {
         .collect()
 }
 
-fn extract_log_call<'a>(
-    expr_stmt: &'a ast::StmtExpr,
-    parent: ParentContext,
-) -> Vec<LogCall<'a>> {
+fn extract_log_call<'a>(expr_stmt: &'a ast::StmtExpr, parent: ParentContext) -> Vec<LogCall<'a>> {
     let ast::Expr::Call(call) = expr_stmt.value.as_ref() else {
         return vec![];
     };
@@ -483,7 +480,10 @@ async def f():
     #[test]
     fn context_module_level() {
         let source = "import structlog\nlog = structlog.get_logger()\nlog.info('hi')\n";
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Module]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Module]
+        );
     }
 
     #[test]
@@ -505,7 +505,10 @@ if False:
 else:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Else]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Else]
+        );
     }
 
     #[test]
@@ -531,7 +534,10 @@ elif False:
 else:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Else]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Else]
+        );
     }
 
     #[test]
@@ -541,7 +547,10 @@ log = structlog.get_logger()
 for i in []:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::For]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::For]
+        );
     }
 
     #[test]
@@ -553,7 +562,10 @@ for i in []:
 else:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::ForElse]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::ForElse]
+        );
     }
 
     #[test]
@@ -563,7 +575,10 @@ log = structlog.get_logger()
 while True:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::While]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::While]
+        );
     }
 
     #[test]
@@ -575,7 +590,10 @@ while False:
 else:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::WhileElse]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::WhileElse]
+        );
     }
 
     #[test]
@@ -587,7 +605,10 @@ try:
 except:
     log.exception("boom")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Except]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Except]
+        );
     }
 
     #[test]
@@ -599,7 +620,10 @@ try:
 except:
     pass
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Try]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Try]
+        );
     }
 
     #[test]
@@ -613,7 +637,10 @@ except:
 else:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::TryElse]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::TryElse]
+        );
     }
 
     #[test]
@@ -627,7 +654,10 @@ except:
 finally:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Finally]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Finally]
+        );
     }
 
     #[test]
@@ -637,7 +667,10 @@ log = structlog.get_logger()
 def foo():
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Function]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Function]
+        );
     }
 
     #[test]
@@ -647,7 +680,10 @@ log = structlog.get_logger()
 async def foo():
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::AsyncFunction]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::AsyncFunction]
+        );
     }
 
     #[test]
@@ -657,7 +693,10 @@ log = structlog.get_logger()
 with open(""):
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::With]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::With]
+        );
     }
 
     #[test]
@@ -668,7 +707,10 @@ async def f():
     async with ctx():
         log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::AsyncWith]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::AsyncWith]
+        );
     }
 
     #[test]
@@ -678,7 +720,10 @@ log = structlog.get_logger()
 class Foo:
     log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Class]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Class]
+        );
     }
 
     #[test]
@@ -689,7 +734,10 @@ async def f():
     async for i in aiter():
         log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::AsyncFor]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::AsyncFor]
+        );
     }
 
     #[test]
@@ -702,7 +750,10 @@ async def f():
     else:
         log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::AsyncForElse]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::AsyncForElse]
+        );
     }
 
     #[test]
@@ -713,7 +764,10 @@ match cmd:
     case "start":
         log.info("x")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Match]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Match]
+        );
     }
 
     #[test]
@@ -727,7 +781,10 @@ for i in []:
         except:
             log.exception("inside except")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Except]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Except]
+        );
     }
 
     #[test]
@@ -922,6 +979,9 @@ class Foo:
         except:
             self.logger.exception("boom")
 "#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Except]);
+        assert_eq!(
+            find_log_calls_with_context(source),
+            vec![ParentContext::Except]
+        );
     }
 }

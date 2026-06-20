@@ -7,8 +7,7 @@ pub fn check_sl001(call: &ast::ExprCall) -> RuleResult {
         return RuleResult::new(
             "SL001",
             Status::Fail,
-            "too many positional arguments; expected at most one (the event string)"
-                .to_string(),
+            "too many positional arguments; expected at most one (the event string)".to_string(),
         );
     }
 

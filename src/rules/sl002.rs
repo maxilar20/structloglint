@@ -10,7 +10,8 @@ pub fn check_sl002(call: &ast::ExprCall) -> RuleResult {
         return RuleResult::new(
             "SL002",
             Status::Fail,
-            "f-string used as event; use a constant string and pass data as keyword arguments".to_string(),
+            "f-string used as event; use a constant string and pass data as keyword arguments"
+                .to_string(),
         );
     }
 

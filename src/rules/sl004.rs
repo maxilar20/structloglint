@@ -10,10 +10,11 @@ pub fn check_sl004(call: &ast::ExprCall) -> RuleResult {
         return RuleResult::new(
             "SL004",
             Status::Fail,
-            ".format() used on event; use a constant string and pass data as keyword arguments".to_string(),
+            ".format() used on event; use a constant string and pass data as keyword arguments"
+                .to_string(),
         );
     }
-    return RuleResult::new("SL004", Status::Pass, String::new());
+    RuleResult::new("SL004", Status::Pass, String::new())
 }
 
 #[cfg(test)]
