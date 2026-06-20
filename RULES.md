@@ -179,6 +179,32 @@ log.info("PROFILE_UPDATED", user_id=user_id)
 log.info("profile_updated", user_id=user_id)
 ```
 
+### Auto-fix
+
+This rule supports `--fix SL008`. When enabled, all event strings are
+rewritten in-place to match the configured `event-case-style`, regardless of
+their current case convention.
+
+```bash
+# Convert all events to snake_case (default)
+structlog-linter --file path/to/file.py --fix SL008
+
+# Convert all events to camelCase
+structlog-linter --file path/to/file.py --fix SL008 --event-case-style camelCase
+```
+
+```python
+# before (mixed case)
+log.info("ProfileUpdated", user_id=user_id)
+log.warning("order-cancelled", order_id=order_id)
+log.debug("PAYMENT_RECEIVED", amount=amount)
+
+# after (--fix SL008, default snake_case)
+log.info("profile_updated", user_id=user_id)
+log.warning("order_cancelled", order_id=order_id)
+log.debug("payment_received", amount=amount)
+```
+
 ### Configuration
 
 | Key | Type | Default | Description |

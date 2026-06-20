@@ -1,4 +1,4 @@
-use crate::models::{LogCall, LogLevel, RuleResult};
+use crate::models::{CaseStyle, LogCall, LogLevel, RuleResult};
 
 mod sl001;
 mod sl002;
@@ -7,6 +7,7 @@ mod sl004;
 mod sl005;
 mod sl006;
 mod sl007;
+mod sl008;
 
 pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
     vec![
@@ -17,6 +18,7 @@ pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
         sl005::check_sl005(log_call),
         sl006::check_sl006(log_call),
         sl007::check_sl007(log_call, LogLevel::Info),
+        sl008::check_sl008(log_call, CaseStyle::SnakeCase),
     ]
 }
 

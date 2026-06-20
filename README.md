@@ -14,6 +14,14 @@ pip install structlog-linter
 structlog-linter --file path/to/file.py
 ```
 
+### Auto-fix event case
+
+Convert all event strings to the configured `event-case-style` in-place:
+
+```
+structlog-linter --file path/to/file.py --fix SL008
+```
+
 ## Configuration
 
 Add a `[tool.structlog-linter]` section to your `pyproject.toml`:
