@@ -1,0 +1,7 @@
+- id: structloglint
+  name: structloglint
+  description: Lint structlog log calls in Python
+  entry: structloglint --path
+  language: rust
+  types: [python]
+  pass_filenames: false
