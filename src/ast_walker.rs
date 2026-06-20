@@ -45,6 +45,13 @@ pub enum ParentContext {
     Match,
 }
 
+fn is_logger_name(name: &str) -> bool {
+    name.starts_with("log")
+        || name.starts_with("LOG")
+        || name.ends_with("logger")
+        || name.ends_with("LOGGER")
+}
+
 pub fn collect_log_calls(stmt: &Stmt, parent: ParentContext) -> Vec<LogCall<'_>> {
     match stmt {
         Stmt::Expr(expr_stmt) => extract_log_call(expr_stmt, parent),
@@ -80,13 +87,16 @@ fn extract_log_call<'a>(
     let ast::Expr::Attribute(attr) = call.func.as_ref() else {
         return vec![];
     };
-    let ast::Expr::Name(name) = attr.value.as_ref() else {
+    let Ok(level) = attr.attr.as_str().parse::<LogLevel>() else {
         return vec![];
     };
-    if name.id.as_str() == "log" {
-        if let Ok(level) = attr.attr.as_str().parse::<LogLevel>() {
-            return vec![LogCall::new(call, parent, level)];
-        }
+    let name = match attr.value.as_ref() {
+        ast::Expr::Name(name) => name.id.as_str(),
+        ast::Expr::Attribute(inner) => inner.attr.as_str(),
+        _ => return vec![],
+    };
+    if is_logger_name(name) {
+        return vec![LogCall::new(call, parent, level)];
     }
     vec![]
 }
@@ -789,5 +799,129 @@ else:
             find_log_calls_with_context(source),
             vec![ParentContext::While, ParentContext::WhileElse]
         );
+    }
+
+    // ── Name heuristic ──────────────────────────────────────────────
+
+    #[test]
+    fn heuristic_log() {
+        assert_eq!(find_log_calls(r#"log.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_logger() {
+        assert_eq!(find_log_calls(r#"logger.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_logging() {
+        assert_eq!(find_log_calls(r#"logging.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_log_prefixed() {
+        assert_eq!(find_log_calls(r#"log_ctx.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_suffixed_logger() {
+        assert_eq!(find_log_calls(r#"my_logger.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_screaming_log() {
+        assert_eq!(find_log_calls(r#"LOG.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_screaming_logger() {
+        assert_eq!(find_log_calls(r#"MY_LOGGER.info("a")"#), 1);
+    }
+
+    #[test]
+    fn heuristic_rejects_non_logger() {
+        assert_eq!(find_log_calls(r#"foo.info("a")"#), 0);
+    }
+
+    #[test]
+    fn heuristic_rejects_helper() {
+        assert_eq!(find_log_calls(r#"helper.debug("a")"#), 0);
+    }
+
+    #[test]
+    fn heuristic_rejects_non_log_method() {
+        assert_eq!(find_log_calls(r#"log.do_stuff("a")"#), 0);
+    }
+
+    // ── Attribute chain detection ───────────────────────────────────
+
+    #[test]
+    fn attr_chain_self_log() {
+        let source = r#"
+class Foo:
+    def method(self):
+        self.log.info("a")
+"#;
+        assert_eq!(find_log_calls(source), 1);
+    }
+
+    #[test]
+    fn attr_chain_self_logger() {
+        let source = r#"
+class Foo:
+    def method(self):
+        self.logger.info("a")
+"#;
+        assert_eq!(find_log_calls(source), 1);
+    }
+
+    #[test]
+    fn attr_chain_cls_logger() {
+        let source = r#"
+class Foo:
+    @classmethod
+    def method(cls):
+        cls.logger.info("a")
+"#;
+        assert_eq!(find_log_calls(source), 1);
+    }
+
+    #[test]
+    fn attr_chain_app_logger() {
+        let source = r#"app.logger.warning("a")"#;
+        assert_eq!(find_log_calls(source), 1);
+    }
+
+    #[test]
+    fn attr_chain_rejects_non_logger() {
+        let source = r#"
+class Foo:
+    def method(self):
+        self.helper.info("a")
+"#;
+        assert_eq!(find_log_calls(source), 0);
+    }
+
+    #[test]
+    fn attr_chain_rejects_non_log_method() {
+        let source = r#"
+class Foo:
+    def method(self):
+        self.log.do_stuff("a")
+"#;
+        assert_eq!(find_log_calls(source), 0);
+    }
+
+    #[test]
+    fn attr_chain_context_preserved() {
+        let source = r#"
+class Foo:
+    def method(self):
+        try:
+            pass
+        except:
+            self.logger.exception("boom")
+"#;
+        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::Except]);
     }
 }

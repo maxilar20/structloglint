@@ -35,8 +35,6 @@ mod test_helpers {
     use rustpython_parser::Parse;
     use rustpython_parser::ast::Suite;
 
-    /// Parse the source and run `check_fn` on the first log call found.
-    /// Returns the RuleResult so the test can assert on it.
     pub fn check_first_call<F>(source: &str, check_fn: F) -> RuleResult
     where
         F: Fn(&LogCall) -> RuleResult,
@@ -50,9 +48,6 @@ mod test_helpers {
         check_fn(call)
     }
 
-    /// Parse the source and run `check_fn` on the first log call found.
-    /// Uses the old-style signature that takes `&ExprCall` directly
-    /// (for rules that don't need parent context).
     pub fn check_first_call_expr(
         source: &str,
         check_fn: fn(&rustpython_parser::ast::ExprCall) -> RuleResult,

@@ -13,7 +13,7 @@ Each violation is tagged with the rule it should trigger:
     SL006 - error() called inside except block instead of exception()
     SL007 - debug/info/warning inside a tight loop body
     SL008 - event name is not snake_case
-    SL009 - bare except swallows exception before log (structlog never sees it)
+    SL009 - event name exceeds maximum length
 
 Lines marked  # OK  are correct and should produce no diagnostics.
 """
@@ -22,21 +22,21 @@ import sys
 import time
 
 import structlog
-import structlog as sl  # alias — semantic model must resolve this too
+import structlog as sl  # alias — name heuristic handles the logger variable name
 from structlog import get_logger
 
 log = structlog.get_logger()  # OK - standard module-level logger
 logger = get_logger()  # OK - from-import form
-other_log = sl.get_logger()  # OK - aliased import form
+other_logger = sl.get_logger()  # OK - aliased import form
 
 # ---------------------------------------------------------------------------
 # 1. IMPORT / ALIAS SMOKE TEST
-#    All three logger names must be recognised by the semantic model.
+#    All three logger names must be recognised by the name heuristic.
 # ---------------------------------------------------------------------------
 
 log.debug("startup", version="1.0.0")  # OK
 logger.debug("startup", version="1.0.0")  # OK
-other_log.debug("startup", version="1.0.0")  # OK
+other_logger.debug("startup", version="1.0.0")  # OK
 
 
 # This is NOT a structlog logger — should never trigger any SL rules.
@@ -264,27 +264,27 @@ def update_profile(user_id: str):
 
 
 # ---------------------------------------------------------------------------
-# 10. BOUND LOGGER — semantic model must track .bind() chains
+# 10. BOUND LOGGER — use conventional names (log/logger) for detection
 # ---------------------------------------------------------------------------
 
 
 def handle_order(user_id: str, order_id: str):
-    # Bind context once, use throughout — all of these must be recognised
-    bound = log.bind(user_id=user_id, order_id=order_id)  # OK
+    # Bind context once, use throughout — name must match heuristic
+    logger = log.bind(user_id=user_id, order_id=order_id)  # OK
 
-    bound.info("order_received")  # OK
-    bound.debug("order_validated", item_count=3)  # OK
+    logger.info("order_received")  # OK
+    logger.debug("order_validated", item_count=3)  # OK
 
     # SL001 — bound logger, positional arg
-    bound.warning("order_flagged", "suspicious_pattern")  # SL001
+    logger.warning("order_flagged", "suspicious_pattern")  # SL001
 
     # SL002 — bound logger, f-string event
-    bound.error(f"order {order_id} failed")  # SL002
+    logger.error(f"order {order_id} failed")  # SL002
 
-    # Chained bind — must still be recognised
-    deeper = bound.bind(step="payment")
-    deeper.info("payment_step_started")  # OK
-    deeper.info("payment step started")  # SL008
+    # Chained bind — rebind to same name (best practice)
+    logger = logger.bind(step="payment")
+    logger.info("payment_step_started")  # OK
+    logger.info("payment step started")  # SL008
 
 
 # ---------------------------------------------------------------------------
@@ -297,20 +297,20 @@ def fulfill_order(order_id: str, warehouse_id: str) -> bool:
     Attempts to fulfil an order from a given warehouse.
     Contains a deliberate mix of correct and incorrect log calls.
     """
-    request_log = log.bind(order_id=order_id, warehouse_id=warehouse_id)
+    logger = log.bind(order_id=order_id, warehouse_id=warehouse_id)
     start = time.monotonic()
 
-    request_log.info("fulfillment_started")  # OK
+    logger.info("fulfillment_started")  # OK
 
     try:
         inventory = _check_inventory(order_id, warehouse_id)
     except ConnectionError:
-        request_log.exception("inventory_check_failed")  # OK
+        logger.exception("inventory_check_failed")  # OK
         return False
 
     if not inventory["available"]:
         # OK
-        request_log.warning(
+        logger.warning(
             "inventory_unavailable",
             requested=inventory["requested"],
             available=inventory["available"],
@@ -320,22 +320,22 @@ def fulfill_order(order_id: str, warehouse_id: str) -> bool:
     items = inventory["items"]
     for item in items:
         # SL007 — inside loop
-        request_log.debug("picking_item", sku=item["sku"], qty=item["qty"])
+        logger.debug("picking_item", sku=item["sku"], qty=item["qty"])
 
     try:
         shipment = _create_shipment(order_id, items)
     except ValueError as e:
         # SL006 — should be exception()
-        request_log.error("shipment_creation_failed", error=str(e))
+        logger.error("shipment_creation_failed", error=str(e))
         return False
     except Exception:
-        request_log.exception("shipment_creation_error")  # OK
+        logger.exception("shipment_creation_error")  # OK
         return False
 
     elapsed_ms = (time.monotonic() - start) * 1000
 
     # SL001 — shipment_id passed positionally
-    request_log.info("fulfillment_complete", shipment["id"], duration_ms=elapsed_ms)
+    logger.info("fulfillment_complete", shipment["id"], duration_ms=elapsed_ms)
 
     return True
 

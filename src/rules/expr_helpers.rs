@@ -1,15 +1,5 @@
 use rustpython_parser::ast;
 
-/// Returns true if the expression is a constant literal (e.g. `'hello'`, `42`).
-pub fn is_constant(expr: &ast::Expr) -> bool {
-    matches!(expr, ast::Expr::Constant(_))
-}
-
-/// Returns true if the expression is a bare name reference (e.g. `event`, `var`).
-pub fn is_name(expr: &ast::Expr) -> bool {
-    matches!(expr, ast::Expr::Name(_))
-}
-
 /// Returns true if the expression is an f-string (e.g. `f'user {username}'`).
 pub fn is_fstring(expr: &ast::Expr) -> bool {
     matches!(expr, ast::Expr::JoinedStr(_))

@@ -23,6 +23,90 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 
 ---
 
+## Logger Detection
+
+`structlog-linter` uses a **naming convention heuristic** to identify structlog
+logger calls — similar to the approach used by
+[Ruff](https://docs.astral.sh/ruff/). It does **not** perform full semantic
+analysis such as import tracing, type inference, or assignment tracking.
+
+### Prerequisites
+
+A file is only checked if it contains a structlog import at the top level:
+
+```python
+import structlog
+# or
+from structlog import get_logger
+```
+
+### What is detected
+
+A call `X.method(...)` is treated as a structlog log call when:
+
+1. `method` is a known log level: `trace`, `debug`, `info`, `warning`,
+   `error`, `critical`, or `exception`
+2. `X` follows a logger naming convention:
+   - Starts with `log` (e.g. `log`, `logger`, `logging`, `log_ctx`)
+   - Starts with `LOG` (e.g. `LOG`, `LOGGER`)
+   - Ends with `logger` (e.g. `my_logger`, `app_logger`)
+   - Ends with `LOGGER` (e.g. `MY_LOGGER`)
+
+Attribute chains are also supported — `self.logger.info(...)` matches
+because the last attribute before the method (`logger`) satisfies the
+naming convention.
+
+### Detected patterns
+
+```python
+# All detected
+log.info("event")
+logger.info("event")
+self.log.info("event")
+self.logger.info("event")
+cls.logger.info("event")
+app.logger.info("event")
+my_logger.info("event")
+
+# NOT detected — name doesn't match convention
+svc.info("event")
+ctx.info("event")
+self.helper.info("event")
+```
+
+### Recommended naming
+
+Use `log` or `logger` as your logger variable name:
+
+```python
+import structlog
+
+log = structlog.get_logger()
+```
+
+### Bound loggers
+
+structlog's `.bind()` returns a new logger instance. Rebind to the same
+variable name so the linter continues to detect calls:
+
+```python
+log = structlog.get_logger()
+
+def handle_request(request_id: str, user_id: str):
+    log = log.bind(request_id=request_id, user_id=user_id)
+    log.info("request_started")
+```
+
+Avoid inventing new variable names that don't follow the convention:
+
+```python
+# Not recommended — linter won't detect calls on "ctx"
+ctx = log.bind(request_id=request_id)
+ctx.info("request_started")  # invisible to the linter
+```
+
+---
+
 ## SL001 -- No extra positional arguments
 
 Only one positional argument (the event string) is allowed. All context must
