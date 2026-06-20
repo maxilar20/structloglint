@@ -56,7 +56,10 @@ mod tests {
         );
         assert_eq!(result.status, Status::Pass, "{}", result.feedback);
     }
-}
 
-// # OK — .format() in a VALUE, not the event
-// log.info("subscription_cancelled", summary="u={} r={}".format("u_123", "expensive"))
+    #[test]
+    fn fails_with_format_on_variable() {
+        let result = check_first_call("log.info(var.format(user_id))", check_sl004);
+        assert_eq!(result.status, Status::Fail, "{}", result.feedback);
+    }
+}
