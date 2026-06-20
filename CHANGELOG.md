@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.1.1...structloglint-v0.2.0) (2026-06-20)
+
+
+### Features
+
+* Added configuration support from pyproject.toml or structloglint.toml, and implemented integration tests ([#3](https://github.com/maxilar20/structloglint/issues/3)) ([4becb9c](https://github.com/maxilar20/structloglint/commit/4becb9c3f01cde200446b9dbb0f3fb365ba7ff79))
+
+
+### Bug Fixes
+
+* async for loops now also detected. ([3731992](https://github.com/maxilar20/structloglint/commit/373199229b785e0da7ef5a8dcac4918437a2e9f1))
+* Readme up to date ([35aeaa3](https://github.com/maxilar20/structloglint/commit/35aeaa30fe6ebb2eaebc25ccc9ab4aee9e587d5a))
+
 ## [0.1.1](https://github.com/maxilar20/structloglint/compare/structloglint-v0.1.0...structloglint-v0.1.1) (2026-06-20)
 
 
