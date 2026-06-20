@@ -25,7 +25,7 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 
 ## Logger Detection
 
-`structlog-linter` uses a **naming convention heuristic** to identify structlog
+`structlint` uses a **naming convention heuristic** to identify structlog
 logger calls — similar to the approach used by
 [Ruff](https://docs.astral.sh/ruff/). It does **not** perform full semantic
 analysis such as import tracing, type inference, or assignment tracking.
@@ -270,10 +270,10 @@ their current case convention.
 
 ```bash
 # Convert all events to snake_case (default)
-structlog-linter --file path/to/file.py --fix SL008
+structlint --file path/to/file.py --fix SL008
 
 # Convert all events to camelCase
-structlog-linter --file path/to/file.py --fix SL008 --event-case-style camelCase
+structlint --file path/to/file.py --fix SL008 --event-case-style camelCase
 ```
 
 ```python
@@ -339,21 +339,21 @@ The following rules are under consideration for future versions:
 
 ## Configuration
 
-`structlog-linter` reads configuration from `pyproject.toml` under the
-`[tool.structlog-linter]` key, following the same conventions as
+`structlint` reads configuration from `pyproject.toml` under the
+`[tool.structlint]` key, following the same conventions as
 [ruff](https://docs.astral.sh/ruff/) and [ty](https://docs.astral.sh/ty/).
 
 ### Minimal example
 
 ```toml
-[tool.structlog-linter]
+[tool.structlint]
 include = ["src/**/*.py", "app/**/*.py"]
 exclude = ["tests/**", "migrations/**"]
 
 max-event-length = 40
 event-case-style = "snake_case"
 
-[tool.structlog-linter.rules]
+[tool.structlint.rules]
 SL006 = "error"      # promote to error
 SL007 = "off"        # disable loop check
 ```
@@ -370,7 +370,7 @@ SL007 = "off"        # disable loop check
 | `event-case-style` | string | `"snake_case"` | Required event case style (SL008). |
 | `loop-log-level` | string | `"debug"` | Max log level allowed inside loops (SL007). |
 
-### Per-rule severity overrides (`[tool.structlog-linter.rules]`)
+### Per-rule severity overrides (`[tool.structlint.rules]`)
 
 Every rule code can be set to one of:
 
@@ -381,17 +381,17 @@ Every rule code can be set to one of:
 | `"off"` | Disable the rule entirely. |
 
 ```toml
-[tool.structlog-linter.rules]
+[tool.structlint.rules]
 SL001 = "error"
 SL008 = "warning"
 ```
 
 ### Installation
 
-`structlog-linter` will be published as a pip-installable package:
+`structlint` will be published as a pip-installable package:
 
 ```
-pip install structlog-linter
+pip install structlint
 ```
 
 The binary is written in Rust and distributed as a Python wheel (via

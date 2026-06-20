@@ -1,0 +1,28 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "structlint"
+version = "0.1.0"
+description = "A fast, opinionated linter for structlog log calls in Python. Written in Rust."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+keywords = ["structlog", "linter", "logging", "rust"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Repository = "https://github.com/maeldorne/structlint"
+
+[tool.maturin]
+bindings = "bin"
+strip = true

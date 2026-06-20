@@ -4,8 +4,8 @@ use std::process;
 
 use clap::Parser;
 use rustpython_parser::Parse;
-use structlog_linter::display::OutputFormat;
-use structlog_linter::{analyzer, display};
+use structlint::display::OutputFormat;
+use structlint::{analyzer, display};
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
