@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "structloglint"
-version = "0.1.0"
+version = "0.1.1"
 description = "A fast, opinionated linter for structlog log calls in Python. Written in Rust."
 readme = "README.md"
 license = "MIT"
