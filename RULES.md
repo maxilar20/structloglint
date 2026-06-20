@@ -20,7 +20,6 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 | SL007 | warning | No logging above `debug` inside loop bodies | done |
 | SL008 | error | Event string must match the configured case style | done |
 | SL009 | warning | Event string exceeds maximum length | done |
-| SL010 | off | Event string should use past tense | wip |
 
 ---
 
@@ -244,27 +243,13 @@ log.info("user_logged_in", redirect="dashboard")
 
 ---
 
-## SL010 -- Past tense event names (wip)
+## Future Rules
 
-Event names should describe something that **has happened** (past tense)
-rather than something that **is happening** (present/progressive). This rule
-is **off by default** and must be explicitly enabled.
+The following rules are under consideration for future versions:
 
-The check is compatible with all supported `event-case-style` values; it
-splits the event into words according to the active case style before
-checking tense.
-
-```python
-# bad
-log.info("user_logging_in", user_id=user_id)
-log.info("processing_payment", order_id=order_id)
-log.info("send_email", user_id=user_id)
-
-# good
-log.info("user_logged_in", user_id=user_id)
-log.info("payment_processed", order_id=order_id)
-log.info("email_sent", user_id=user_id)
-```
+| Code | Description | Notes |
+|--------|----------------------------------------------------------|-------|
+| SL010 | Event string should use past tense | Needs reliable verb tense detection; current NLP approaches (stemming + word lists) produce too many false positives on noun-phrase events. |
 
 ---
 
@@ -287,7 +272,6 @@ event-case-style = "snake_case"
 [tool.structlog-linter.rules]
 SL006 = "error"      # promote to error
 SL007 = "off"        # disable loop check
-SL010 = "warning"    # enable past-tense check
 ```
 
 ### Top-level options
@@ -316,7 +300,6 @@ Every rule code can be set to one of:
 [tool.structlog-linter.rules]
 SL001 = "error"
 SL008 = "warning"
-SL010 = "off"
 ```
 
 ### Installation
