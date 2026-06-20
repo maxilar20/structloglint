@@ -1,0 +1,9 @@
+[project]
+name = "custom-app"
+version = "0.1.0"
+requires-python = ">=3.8"
+
+[tool.structloglint]
+event-case-style = "camelCase"
+max-event-length = 50
+loop-log-level = "warning"

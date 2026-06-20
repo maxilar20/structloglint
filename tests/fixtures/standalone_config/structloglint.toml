@@ -1,0 +1,3 @@
+event-case-style = "kebab-case"
+max-event-length = 40
+loop-log-level = "info"

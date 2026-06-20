@@ -1,0 +1,5 @@
+[project]
+name = "clean-app"
+version = "0.1.0"
+
+[tool.structloglint]

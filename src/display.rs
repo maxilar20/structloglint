@@ -175,6 +175,7 @@ fn color_rule_id(result: &RuleResult) -> colored::ColoredString {
 mod tests {
     use super::*;
     use crate::analyzer;
+    use crate::config::Config;
     use rustpython_parser::Parse;
     use rustpython_parser::ast::Suite;
 
@@ -254,7 +255,7 @@ mod tests {
         init();
         let source = src("log.info('user_logged_in', 'extra')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         let (errors, warnings) = print_diagnostics(
@@ -278,7 +279,7 @@ mod tests {
         init();
         let source = src("log.info('user_logged_in', 'extra')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         print_diagnostics(
@@ -304,7 +305,7 @@ mod tests {
         init();
         let source = src("log.info('user_logged_in', 'extra')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         print_diagnostics(&mut buf, &findings, "test.py", &source, OutputFormat::Full).unwrap();
@@ -329,7 +330,7 @@ mod tests {
         init();
         let source = src("log.info('user_logged_in', user_id='u_123')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         let (errors, warnings) = print_diagnostics(
@@ -352,7 +353,7 @@ mod tests {
         init();
         let source = src("log.info('user_logged_in', 'extra')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         let (errors, _warnings) = print_diagnostics(
@@ -411,7 +412,7 @@ mod tests {
         init();
         let source = src("log.info('user_logged_in', 'extra')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         print_diagnostics(&mut buf, &findings, "test.py", &source, OutputFormat::Full).unwrap();
@@ -430,7 +431,7 @@ mod tests {
         init();
         let source = src("log.info(\n    'user_logged_in',\n    'extra'\n)\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         print_diagnostics(&mut buf, &findings, "test.py", &source, OutputFormat::Full).unwrap();
@@ -445,7 +446,7 @@ mod tests {
         init();
         let source = src("log.info('a', 'extra')\nlog.info('b', 'extra')\n");
         let stmts = Suite::parse(&source, "<test>").expect("parse failed");
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &Config::default());
 
         let mut buf = Vec::new();
         let (errors, _) = print_diagnostics(
