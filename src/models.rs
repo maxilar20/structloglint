@@ -14,26 +14,42 @@ pub enum Status {
 pub enum ParentContext {
     /// Not inside any block we track (top-level, etc.).
     Module,
-    /// Inside an `except` handler.
+    /// Inside an `except` handler (`try … except` or `try … except*`).
     Except,
     /// Inside a `for` loop body.
     For,
-    /// Inside a `for or else` loop body.
+    /// Inside the `else` clause of a `for` loop.
     ForElse,
     /// Inside a `while` loop body.
     While,
-    /// Inside a `while else` block.
+    /// Inside the `else` clause of a `while` loop.
     WhileElse,
-    /// Inside an `if` body.
+    /// Inside an `if` body (includes `elif` bodies).
     If,
-    /// Inside an `else` block.
+    /// Inside the `else` clause of an `if`/`elif`.
     Else,
-    /// Inside a function body (but not a deeper tracked block).
+    /// Inside a function body.
     Function,
+    /// Inside an async function body.
+    AsyncFunction,
     /// Inside a `with` body.
     With,
+    /// Inside an `async with` body.
+    AsyncWith,
     /// Inside a class body.
     Class,
+    /// Inside the body of a `try` block (before `except`).
+    Try,
+    /// Inside the `else` clause of a `try` block.
+    TryElse,
+    /// Inside a `finally` block.
+    Finally,
+    /// Inside an `async for` loop body.
+    AsyncFor,
+    /// Inside the `else` clause of an `async for` loop.
+    AsyncForElse,
+    /// Inside a `match` case body.
+    Match,
 }
 
 /// A log call paired with its parent context.
