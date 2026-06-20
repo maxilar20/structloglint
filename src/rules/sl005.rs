@@ -1,11 +1,11 @@
-use crate::expr_helpers::is_call_exception;
+use crate::expr_helpers::is_call_level;
 use crate::models::{LogCall, ParentContext, RuleResult, Status};
 
 /// SL005: `log.exception()` must only be used inside an `except` block.
 pub fn check_sl005(log_call: &LogCall) -> RuleResult {
     // Only `exception()` calls are subject to this check.
 
-    if !is_call_exception(&log_call.call) {
+    if !is_call_level(&log_call.call, "exception") {
         return RuleResult::new("SL005", Status::Pass, String::new());
     }
 

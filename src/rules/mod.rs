@@ -5,7 +5,7 @@ mod sl002;
 mod sl003;
 mod sl004;
 mod sl005;
-// mod sl006;
+mod sl006;
 
 pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
     vec![
@@ -14,7 +14,7 @@ pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
         sl003::check_sl003(log_call.call),
         sl004::check_sl004(log_call.call),
         sl005::check_sl005(log_call),
-        // sl006::check_sl006(log_call),
+        sl006::check_sl006(log_call),
         // sl007::check_sl007(log_call),
     ]
 }

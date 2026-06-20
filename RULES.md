@@ -16,7 +16,7 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 | SL003 | error | Do not use `%`-formatting in the event argument | done |
 | SL004 | error | Do not use `.format()` in the event argument | done |
 | SL005 | error | `log.exception()` only inside `except` blocks | done |
-| SL006 | warning | Prefer `log.exception()` over `log.error()` in `except` | wip |
+| SL006 | warning | Prefer `log.exception()` over `log.error()` in `except` | done |
 | SL007 | warning | No logging above `debug` inside loop bodies | wip |
 | SL008 | error | Event string must match the configured case style | wip |
 | SL009 | warning | Event string exceeds maximum length | wip |
