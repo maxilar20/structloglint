@@ -29,7 +29,7 @@ pub fn check_sl006(log_call: &LogCall) -> RuleResult {
         if any_keyword_is_exc_info(log_call.call) {
             return RuleResult::new("SL006", Status::Pass, String::new());
         }
-        return RuleResult::new("SL006", Status::Fail, String::new());
+        return RuleResult::new("SL006", Status::Fail, "log.error() inside except block without exc_info=True; use log.exception() or pass exc_info=True".to_string());
     }
 
     RuleResult::new("SL006", Status::Pass, String::new())

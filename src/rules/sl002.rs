@@ -10,7 +10,7 @@ pub fn check_sl002(call: &ast::ExprCall) -> RuleResult {
         return RuleResult::new(
             "SL002",
             Status::Fail,
-            "Passing an f-string as the event argument in structlog, consider using a constant string instead".to_string(),
+            "f-string used as event; use a constant string and pass data as keyword arguments".to_string(),
         );
     }
 

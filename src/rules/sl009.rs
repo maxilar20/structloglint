@@ -24,7 +24,7 @@ pub fn check_sl009(log_call: &LogCall, event_length: usize) -> RuleResult {
         "SL009",
         Status::Fail,
         format!(
-            "Event string \"{}\" exceeds maximum length of {}",
+            "event string \"{}\" exceeds maximum length of {}",
             event, event_length,
         ),
     )

@@ -32,7 +32,7 @@ pub fn check_sl008(log_call: &LogCall, case_style: CaseStyle) -> RuleResult {
         "SL008",
         Status::Fail,
         format!(
-            "Event string \"{}\" does not match {} style, expected \"{}\"",
+            "event string \"{}\" does not match {} style, expected \"{}\"",
             event, case_style, converted,
         ),
     )

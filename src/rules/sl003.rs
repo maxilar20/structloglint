@@ -10,7 +10,7 @@ pub fn check_sl003(call: &ast::ExprCall) -> RuleResult {
         return RuleResult::new(
             "SL003",
             Status::Fail,
-            "The event argument in structlog should not use %-formatting, use keyword arguments instead".to_string(),
+            "%-formatting used in event; use a constant string and pass data as keyword arguments".to_string(),
         );
     }
     return RuleResult::new("SL003", Status::Pass, String::new());

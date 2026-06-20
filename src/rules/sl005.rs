@@ -12,7 +12,7 @@ pub fn check_sl005(log_call: &LogCall) -> RuleResult {
         return RuleResult::new(
             "SL005",
             Status::Fail,
-            "log.exception() used outside of an except block. Use log.exception() only inside except handlers."
+            "log.exception() used outside of an except block"
                 .to_string(),
         );
     }

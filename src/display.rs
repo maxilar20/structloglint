@@ -94,10 +94,12 @@ pub fn print_summary(w: &mut impl Write, errors: usize, warnings: usize) -> io::
     } else {
         let mut parts = Vec::new();
         if errors > 0 {
-            parts.push(format!("{} error(s)", errors));
+            let label = if errors == 1 { "error" } else { "errors" };
+            parts.push(format!("{} {}", errors, label));
         }
         if warnings > 0 {
-            parts.push(format!("{} warning(s)", warnings));
+            let label = if warnings == 1 { "warning" } else { "warnings" };
+            parts.push(format!("{} {}", warnings, label));
         }
         writeln!(w, "{}", format!("Found {}.", parts.join(", ")).bold())
     }
@@ -374,7 +376,7 @@ mod tests {
         let mut buf = Vec::new();
         print_summary(&mut buf, 3, 0).unwrap();
         let output = String::from_utf8(buf).unwrap();
-        assert!(output.contains("3 error(s)"));
+        assert!(output.contains("3 errors"));
         assert!(!output.contains("warning"));
     }
 
@@ -384,7 +386,7 @@ mod tests {
         let mut buf = Vec::new();
         print_summary(&mut buf, 0, 2).unwrap();
         let output = String::from_utf8(buf).unwrap();
-        assert!(output.contains("2 warning(s)"));
+        assert!(output.contains("2 warnings"));
         assert!(!output.contains("error"));
     }
 
@@ -394,8 +396,8 @@ mod tests {
         let mut buf = Vec::new();
         print_summary(&mut buf, 5, 3).unwrap();
         let output = String::from_utf8(buf).unwrap();
-        assert!(output.contains("5 error(s)"));
-        assert!(output.contains("3 warning(s)"));
+        assert!(output.contains("5 errors"));
+        assert!(output.contains("3 warnings"));
     }
 
     #[test]

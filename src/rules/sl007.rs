@@ -9,7 +9,7 @@ pub fn check_sl007(log_call: &LogCall, min_log_level: LogLevel) -> RuleResult {
 
     if matches!(log_call.context, ParentContext::While | ParentContext::For) {
         let feedback = format!(
-            "No logging above `{min_log_level}` inside loop bodies",
+            "logging at level `{min_log_level}` or above inside a loop body",
             min_log_level = min_log_level.as_str()
         );
         return RuleResult::new("SL007", Status::Fail, feedback);
