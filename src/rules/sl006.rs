@@ -1,8 +1,7 @@
 use rustpython_parser::ast;
 use rustpython_parser::ast::Keyword;
 
-use crate::expr_helpers::is_call_level;
-use crate::models::{LogCall, ParentContext, RuleResult, Status};
+use crate::models::{LogCall, LogLevel, ParentContext, RuleResult, Status};
 
 fn keyword_is_exc_info(keyword: &Keyword) -> bool {
     if let Some(keyword_id) = &keyword.arg {
@@ -21,7 +20,7 @@ fn any_keyword_is_exc_info(log_call: &ast::ExprCall) -> bool {
 
 /// SL006 — error() inside except block without exc_info=True.
 pub fn check_sl006(log_call: &LogCall) -> RuleResult {
-    if !is_call_level(&log_call.call, "error") {
+    if log_call.level != LogLevel::Error {
         return RuleResult::new("SL006", Status::Pass, String::new());
     }
 

@@ -1,12 +1,62 @@
 use colored::Colorize;
 use rustpython_parser::ast;
 use std::fmt;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     Pass,
     Warning,
     Fail,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LogLevel {
+    Trace = 0,
+    Debug = 1,
+    Info = 2,
+    Warning = 3,
+    Error = 4,
+    Critical = 5,
+    Exception = 6,
+}
+
+impl LogLevel {
+    pub const ALL: &[LogLevel] = &[
+        Self::Trace,
+        Self::Debug,
+        Self::Info,
+        Self::Warning,
+        Self::Error,
+        Self::Critical,
+        Self::Exception,
+    ];
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Trace => "trace",
+            Self::Debug => "debug",
+            Self::Info => "info",
+            Self::Warning => "warning",
+            Self::Error => "error",
+            Self::Critical => "critical",
+            Self::Exception => "exception",
+        }
+    }
+}
+
+impl FromStr for LogLevel {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::ALL.iter().find(|l| l.as_str() == s).copied().ok_or(())
+    }
+}
+
+impl fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 /// The parent context of a log call — what kind of block it sits directly inside.
@@ -52,16 +102,21 @@ pub enum ParentContext {
     Match,
 }
 
-/// A log call paired with its parent context.
+/// A log call paired with its parent context and resolved log level.
 #[derive(Clone, Copy)]
 pub struct LogCall<'a> {
     pub call: &'a ast::ExprCall,
     pub context: ParentContext,
+    pub level: LogLevel,
 }
 
 impl<'a> LogCall<'a> {
-    pub fn new(call: &'a ast::ExprCall, context: ParentContext) -> Self {
-        Self { call, context }
+    pub fn new(call: &'a ast::ExprCall, context: ParentContext, level: LogLevel) -> Self {
+        Self {
+            call,
+            context,
+            level,
+        }
     }
 }
 

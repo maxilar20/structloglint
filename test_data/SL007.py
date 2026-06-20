@@ -5,8 +5,11 @@ Expected diagnostics: 2
     Line 17: SL007  (for loop)
     Line 22: SL007  (while loop)
 """
+
 import structlog
+
 log = structlog.get_logger()
+
 
 def import_products(products: list):
     # OK — before the loop
@@ -19,7 +22,7 @@ def import_products(products: list):
     i = 0
     # SL007 — inside while loop
     while i < len(products):
-        log.debug("processing_product", index=i)
+        log.info("processing_product", index=i)
         i += 1
 
     # OK — after the loop

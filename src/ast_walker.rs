@@ -1,6 +1,6 @@
 use rustpython_parser::ast::{self, Stmt};
 
-use crate::models::{LogCall, ParentContext};
+use crate::models::{LogCall, LogLevel, ParentContext};
 
 pub fn collect_log_calls(stmt: &Stmt, parent: ParentContext) -> Vec<LogCall<'_>> {
     match stmt {
@@ -40,16 +40,12 @@ fn extract_log_call<'a>(
     let ast::Expr::Name(name) = attr.value.as_ref() else {
         return vec![];
     };
-    if name.id.as_str() == "log"
-        && matches!(
-            attr.attr.as_str(),
-            "debug" | "info" | "warning" | "error" | "exception" | "critical"
-        )
-    {
-        vec![LogCall::new(call, parent)]
-    } else {
-        vec![]
+    if name.id.as_str() == "log" {
+        if let Ok(level) = attr.attr.as_str().parse::<LogLevel>() {
+            return vec![LogCall::new(call, parent, level)];
+        }
     }
+    vec![]
 }
 
 fn walk_if<'a>(if_stmt: &'a ast::StmtIf) -> Vec<LogCall<'a>> {
