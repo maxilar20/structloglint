@@ -312,7 +312,7 @@ Event strings that are too long are hard to read and indicate that
 the event is a sentence rather than a machine-friendly identifier.
 
 ```python
-# bad (assuming max-event-length = 50)
+# bad (assuming max-event-length = 30)
 log.info("the user has successfully logged into the system and was redirected to the dashboard")
 
 # good
@@ -323,7 +323,7 @@ log.info("user_logged_in", redirect="dashboard")
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `max-event-length` | integer | `50` | Maximum number of characters allowed in the event string. |
+| `max-event-length` | integer | `30` | Maximum number of characters allowed in the event string. |
 
 ---
 
