@@ -63,6 +63,7 @@ See [RULES.md](RULES.md#configuration) for all configuration options.
 | Cross-platform builds | CI matrix for Linux (x86_64, musl, aarch64), macOS (x86_64, aarch64), Windows (x86_64) |
 | Binary distribution | Publish wheels per platform to PyPI via maturin |
 | Exit codes | Non-zero exit on findings for CI gating |
+| Rule selection | `--select` / `--ignore` CLI flags + `select` / `ignore` config keys | 
 
 ### Must Have
 
@@ -70,7 +71,6 @@ See [RULES.md](RULES.md#configuration) for all configuration options.
 |------|--------|--------|
 | `--fix` flag | Apply auto-fixes in-place (SL008 fix model already exists) | not started |
 | CLI config overrides | `--event-case-style`, `--max-event-length`, `--loop-log-level` flags | not started |
-| Rule selection | `--select` / `--ignore` CLI flags + `select` / `ignore` config keys | not started |
 | Inline suppression | `# noqa: SL001` style comments to suppress per-line | not started |
 
 ### Should Have
