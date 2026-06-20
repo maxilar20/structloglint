@@ -18,8 +18,8 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 | SL005 | error | `log.exception()` only inside `except` blocks | done |
 | SL006 | warning | Prefer `log.exception()` over `log.error()` in `except` | done |
 | SL007 | warning | No logging above `debug` inside loop bodies | done |
-| SL008 | error | Event string must match the configured case style | wip |
-| SL009 | warning | Event string exceeds maximum length | wip |
+| SL008 | error | Event string must match the configured case style | done |
+| SL009 | warning | Event string exceeds maximum length | done |
 | SL010 | off | Event string should use past tense | wip |
 
 ---

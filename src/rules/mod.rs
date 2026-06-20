@@ -8,6 +8,7 @@ mod sl005;
 mod sl006;
 mod sl007;
 mod sl008;
+mod sl009;
 
 pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
     vec![
@@ -19,6 +20,7 @@ pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
         sl006::check_sl006(log_call),
         sl007::check_sl007(log_call, LogLevel::Info),
         sl008::check_sl008(log_call, CaseStyle::SnakeCase),
+        sl009::check_sl009(log_call, 30),
     ]
 }
 
