@@ -4,6 +4,7 @@ use std::process;
 
 use clap::Parser;
 use rustpython_parser::Parse;
+use structloglint::config;
 use structloglint::display::OutputFormat;
 use structloglint::{analyzer, display};
 use walkdir::WalkDir;
@@ -23,6 +24,7 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+    let config = config::discover_config(std::path::Path::new(&args.path))?;
     let mut stdout = io::stdout().lock();
     let mut total_errors = 0usize;
     let mut total_warnings = 0usize;
@@ -37,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let file_path = file.path().to_string_lossy().to_string();
         let python_code = fs::read_to_string(file.path())?;
         let stmts = rustpython_parser::ast::Suite::parse(&python_code, &file_path)?;
-        let findings = analyzer::analyze(&stmts);
+        let findings = analyzer::analyze(&stmts, &config);
 
         let (errors, warnings) = display::print_diagnostics(
             &mut stdout,

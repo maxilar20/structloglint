@@ -46,13 +46,13 @@ Breaking changes: add `!` after the prefix (e.g. `feat!: remove --verbose flag`)
 make test
 ```
 
-Tests live alongside the source code in `#[cfg(test)]` modules. Test fixtures are in `test_data/`.
+Unit tests live alongside the source code in `#[cfg(test)]` modules. Integration tests are in `tests/integration.rs` using fixture Python packages under `tests/fixtures/`.
 
 ## Adding a new rule
 
 1. Create `src/rules/slXXX.rs` with a `check_slXXX` function
 2. Register it in `src/rules/mod.rs`
-3. Add a test fixture in `test_data/SLXXX.py`
+3. Add test cases to the appropriate fixture in `tests/fixtures/`
 4. Add documentation in `RULES.md`
 
 ## Releases

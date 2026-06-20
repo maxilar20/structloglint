@@ -1,8 +1,7 @@
-use crate::models::{LogCall, LogLevel, RuleResult};
+use crate::config::Config;
+use crate::models::{LogCall, RuleResult};
 
-use self::case_style::CaseStyle;
-
-mod case_style;
+pub mod case_style;
 mod expr_helpers;
 mod sl001;
 mod sl002;
@@ -14,7 +13,7 @@ mod sl007;
 mod sl008;
 mod sl009;
 
-pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
+pub fn check_all(log_call: &LogCall, config: &Config) -> Vec<RuleResult> {
     vec![
         sl001::check_sl001(log_call.call),
         sl002::check_sl002(log_call.call),
@@ -22,9 +21,9 @@ pub fn check_all(log_call: &LogCall) -> Vec<RuleResult> {
         sl004::check_sl004(log_call.call),
         sl005::check_sl005(log_call),
         sl006::check_sl006(log_call),
-        sl007::check_sl007(log_call, LogLevel::Info),
-        sl008::check_sl008(log_call, CaseStyle::SnakeCase),
-        sl009::check_sl009(log_call, 30),
+        sl007::check_sl007(log_call, config.min_loop_log_level),
+        sl008::check_sl008(log_call, config.case_style),
+        sl009::check_sl009(log_call, config.max_event_length),
     ]
 }
 
@@ -79,7 +78,7 @@ mod tests {
             .flat_map(|s| collect_log_calls(s, ParentContext::Module))
             .collect();
         let call = calls.first().expect("no log call found");
-        let results = check_all(call);
+        let results = check_all(call, &Config::default());
         let sl009 = results.iter().find(|r| r.rule_id == "SL009").unwrap();
         assert_eq!(
             sl009.status,
@@ -97,7 +96,7 @@ mod tests {
             .flat_map(|s| collect_log_calls(s, ParentContext::Module))
             .collect();
         let call = calls.first().expect("no log call found");
-        let results = check_all(call);
+        let results = check_all(call, &Config::default());
         let sl009 = results.iter().find(|r| r.rule_id == "SL009").unwrap();
         assert_eq!(
             sl009.status,
