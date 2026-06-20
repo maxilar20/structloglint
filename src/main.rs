@@ -1,7 +1,10 @@
 use std::fs;
+use std::io;
+use std::process;
 
 use clap::Parser;
 use rustpython_parser::Parse;
+use structlog_linter::display::OutputFormat;
 use structlog_linter::{analyzer, display};
 use walkdir::WalkDir;
 
@@ -13,10 +16,16 @@ struct Args {
 
     #[arg(short, long)]
     verbose: bool,
+
+    #[arg(short = 'f', long, default_value = "full", value_enum)]
+    output_format: OutputFormat,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+    let mut stdout = io::stdout().lock();
+    let mut total_errors = 0usize;
+    let mut total_warnings = 0usize;
 
     let files: Vec<_> = WalkDir::new(&args.path)
         .into_iter()
@@ -27,18 +36,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    println!("\n-> Scanning {} ({} Python file(s))", args.path, files.len());
-
     for file in &files {
         let file_path = file.path().to_string_lossy().to_string();
         let python_code = fs::read_to_string(file.path())?;
         let stmts = rustpython_parser::ast::Suite::parse(&python_code, &file_path)?;
         let findings = analyzer::analyze(&stmts);
 
-        if !findings.is_empty() || args.verbose {
-            println!("\n  {} — {} finding(s)", file_path, findings.len());
-            display::print_findings(&findings, &python_code, args.verbose);
-        }
+        let (errors, warnings) = display::print_diagnostics(
+            &mut stdout,
+            &findings,
+            &file_path,
+            &python_code,
+            args.output_format,
+        )?;
+        total_errors += errors;
+        total_warnings += warnings;
+    }
+
+    display::print_summary(&mut stdout, total_errors, total_warnings)?;
+
+    if total_errors > 0 || total_warnings > 0 {
+        process::exit(1);
     }
 
     Ok(())
