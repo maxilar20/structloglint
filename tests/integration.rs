@@ -176,6 +176,73 @@ fn standalone_config_loop_log_level_info() {
     assert_eq!(
         count_rule(&violations, "SL007"),
         2,
-        "both info and warning in loops should fail with min=info"
+        "both info and warning in loops should be flagged with min=info"
+    );
+}
+
+// --- rule_selection fixture ---
+
+#[test]
+fn rule_selection_select_runs_only_specified_rules() {
+    let violations = analyze_fixture("rule_selection", "app.py");
+
+    assert_eq!(
+        count_rule(&violations, "SL001"),
+        1,
+        "SL001 should be present"
+    );
+    assert_eq!(
+        count_rule(&violations, "SL002"),
+        0,
+        "SL002 should not be present because only SL001 is selected"
+    );
+    assert_eq!(
+        count_rule(&violations, "SL003"),
+        0,
+        "SL003 should not be present because only SL001 is selected"
+    );
+    assert_eq!(
+        violations.len(),
+        1,
+        "only SL001 violation should be reported"
+    );
+}
+
+// --- rule_severity fixture ---
+
+#[test]
+fn rule_severity_off_disables_sl007() {
+    let violations = analyze_fixture("rule_severity", "app.py");
+
+    assert_eq!(
+        count_rule(&violations, "SL007"),
+        0,
+        "SL007 should be disabled by severity=off"
+    );
+}
+
+#[test]
+fn rule_severity_error_promotes_sl009_to_fail() {
+    let violations = analyze_fixture("rule_severity", "app.py");
+
+    let sl009 = violations
+        .iter()
+        .find(|(id, _)| id == "SL009")
+        .expect("SL009 should be present");
+    assert_eq!(sl009.1, Status::Fail, "SL009 should be promoted to error");
+}
+
+#[test]
+fn rule_severity_sl008_uses_default_fail() {
+    let violations = analyze_fixture("rule_severity", "app.py");
+
+    let sl008 = violations
+        .iter()
+        .find(|(id, _)| id == "SL008")
+        .expect("SL008 should be present");
+    assert_eq!(
+        sl008.1,
+        Status::Fail,
+        "SL008 should retain its default error status"
     );
 }

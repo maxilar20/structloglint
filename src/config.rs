@@ -1,10 +1,11 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::models::LogLevel;
+use crate::models::{LogLevel, RuleSeverity};
 use crate::rules::case_style::CaseStyle;
 
 #[derive(Debug, Clone)]
@@ -12,6 +13,9 @@ pub struct Config {
     pub case_style: CaseStyle,
     pub max_event_length: usize,
     pub min_loop_log_level: LogLevel,
+    pub select: Option<Vec<String>>,
+    pub ignore: Option<Vec<String>>,
+    pub rules: HashMap<String, RuleSeverity>,
 }
 
 impl Default for Config {
@@ -20,6 +24,9 @@ impl Default for Config {
             case_style: CaseStyle::SnakeCase,
             max_event_length: 30,
             min_loop_log_level: LogLevel::Info,
+            select: None,
+            ignore: None,
+            rules: HashMap::new(),
         }
     }
 }
@@ -30,6 +37,7 @@ pub enum ConfigError {
     Toml(toml::de::Error),
     InvalidCaseStyle(String),
     InvalidLogLevel(String),
+    InvalidRuleSeverity(String),
 }
 
 impl fmt::Display for ConfigError {
@@ -39,6 +47,7 @@ impl fmt::Display for ConfigError {
             Self::Toml(e) => write!(f, "failed to parse config file: {e}"),
             Self::InvalidCaseStyle(s) => write!(f, "invalid case style: {s}"),
             Self::InvalidLogLevel(s) => write!(f, "invalid log level: {s}"),
+            Self::InvalidRuleSeverity(s) => write!(f, "invalid rule severity: {s}"),
         }
     }
 }
@@ -63,6 +72,12 @@ struct RawConfig {
     event_case_style: Option<String>,
     max_event_length: Option<usize>,
     loop_log_level: Option<String>,
+    #[serde(default)]
+    select: Option<Vec<String>>,
+    #[serde(default)]
+    ignore: Option<Vec<String>>,
+    #[serde(default)]
+    rules: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -93,10 +108,27 @@ impl RawConfig {
             None => defaults.min_loop_log_level,
         };
 
+        let rules = match self.rules {
+            Some(map) => {
+                let mut parsed = HashMap::new();
+                for (rule_id, severity_str) in map {
+                    let severity = severity_str
+                        .parse::<RuleSeverity>()
+                        .map_err(|()| ConfigError::InvalidRuleSeverity(severity_str))?;
+                    parsed.insert(rule_id, severity);
+                }
+                parsed
+            }
+            None => HashMap::new(),
+        };
+
         Ok(Config {
             case_style,
             max_event_length: self.max_event_length.unwrap_or(defaults.max_event_length),
             min_loop_log_level,
+            select: self.select,
+            ignore: self.ignore,
+            rules,
         })
     }
 }
@@ -352,5 +384,90 @@ max-event-length = 55
         assert_eq!(config.case_style, CaseStyle::SnakeCase);
         assert_eq!(config.max_event_length, 30);
         assert_eq!(config.min_loop_log_level, LogLevel::Info);
+    }
+
+    #[test]
+    fn pyproject_with_select_and_ignore() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "pyproject.toml",
+            r#"
+[tool.structloglint]
+select = ["SL001", "SL002"]
+ignore = ["SL007"]
+"#,
+        );
+        let config = discover_config(dir.path()).unwrap();
+        assert_eq!(
+            config.select,
+            Some(vec!["SL001".to_string(), "SL002".to_string()])
+        );
+        assert_eq!(config.ignore, Some(vec!["SL007".to_string()]));
+        assert!(config.rules.is_empty());
+    }
+
+    #[test]
+    fn pyproject_with_per_rule_severity() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "pyproject.toml",
+            r#"
+[tool.structloglint.rules]
+SL006 = "error"
+SL007 = "off"
+SL009 = "error"
+"#,
+        );
+        let config = discover_config(dir.path()).unwrap();
+        assert_eq!(config.rules.len(), 3);
+        assert_eq!(config.rules.get("SL006"), Some(&RuleSeverity::Error));
+        assert_eq!(config.rules.get("SL007"), Some(&RuleSeverity::Off));
+        assert_eq!(config.rules.get("SL009"), Some(&RuleSeverity::Error));
+    }
+
+    #[test]
+    fn invalid_rule_severity_returns_error() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "structloglint.toml",
+            r#"
+[rules]
+SL001 = "fatal"
+"#,
+        );
+        let result = discover_config(dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("invalid rule severity"), "{err}");
+    }
+
+    #[test]
+    fn standalone_config_with_rules_and_select() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "structloglint.toml",
+            r#"
+select = ["SL001", "SL008", "SL009"]
+ignore = ["SL009"]
+
+[rules]
+SL008 = "warning"
+"#,
+        );
+        let config = discover_config(dir.path()).unwrap();
+        assert_eq!(
+            config.select,
+            Some(vec![
+                "SL001".to_string(),
+                "SL008".to_string(),
+                "SL009".to_string()
+            ])
+        );
+        assert_eq!(config.ignore, Some(vec!["SL009".to_string()]));
+        assert_eq!(config.rules.get("SL008"), Some(&RuleSeverity::Warning));
     }
 }

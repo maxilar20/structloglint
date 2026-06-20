@@ -6,6 +6,8 @@ use clap::Parser;
 use rustpython_parser::Parse;
 use structloglint::config;
 use structloglint::display::OutputFormat;
+use structloglint::models::LogLevel;
+use structloglint::rules::case_style::CaseStyle;
 use structloglint::{analyzer, display};
 use walkdir::WalkDir;
 
@@ -20,11 +22,46 @@ struct Args {
 
     #[arg(short = 'f', long, default_value = "full", value_enum)]
     output_format: OutputFormat,
+
+    #[arg(long, value_name = "STYLE")]
+    event_case_style: Option<String>,
+
+    #[arg(long, value_name = "N")]
+    max_event_length: Option<usize>,
+
+    #[arg(long, value_name = "LEVEL")]
+    loop_log_level: Option<String>,
+
+    #[arg(long, value_name = "RULES", value_delimiter = ',')]
+    select: Option<Vec<String>>,
+
+    #[arg(long, value_name = "RULES", value_delimiter = ',')]
+    ignore: Option<Vec<String>>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let config = config::discover_config(std::path::Path::new(&args.path))?;
+    let mut config = config::discover_config(std::path::Path::new(&args.path))?;
+
+    if let Some(style) = &args.event_case_style {
+        config.case_style = style
+            .parse::<CaseStyle>()
+            .map_err(|()| format!("invalid case style: {style}"))?;
+    }
+    if let Some(n) = args.max_event_length {
+        config.max_event_length = n;
+    }
+    if let Some(level) = &args.loop_log_level {
+        config.min_loop_log_level = level
+            .parse::<LogLevel>()
+            .map_err(|()| format!("invalid log level: {level}"))?;
+    }
+    if args.select.is_some() {
+        config.select = args.select;
+    }
+    if args.ignore.is_some() {
+        config.ignore = args.ignore;
+    }
     let mut stdout = io::stdout().lock();
     let mut total_errors = 0usize;
     let mut total_warnings = 0usize;
