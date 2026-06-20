@@ -7,7 +7,10 @@ pub fn check_sl007(log_call: &LogCall, min_log_level: LogLevel) -> RuleResult {
         return RuleResult::new("SL007", Status::Pass, String::new());
     }
 
-    if matches!(log_call.context, ParentContext::While | ParentContext::For) {
+    if matches!(
+        log_call.context,
+        ParentContext::While | ParentContext::For | ParentContext::AsyncFor
+    ) {
         let feedback = format!(
             "logging at level `{min_log_level}` or above inside a loop body",
             min_log_level = min_log_level.as_str()
@@ -93,6 +96,30 @@ while i < len(products):
     pass
 else:
     log.info("empty_loop_complete")"#,
+            checker,
+        );
+        assert_eq!(rule_result.status, Status::Pass, "{}", rule_result.feedback);
+    }
+
+    #[test]
+    fn fails_inside_async_for_loop_with_info_level() {
+        let checker = check_sl007_with_min_level(LogLevel::Info);
+        let rule_result = check_first_call(
+            r#"async def f():
+    async for item in aiter():
+        log.info("processing_item", item_id=item.id)"#,
+            checker,
+        );
+        assert_eq!(rule_result.status, Status::Fail, "{}", rule_result.feedback);
+    }
+
+    #[test]
+    fn passes_inside_async_for_loop_with_debug_level() {
+        let checker = check_sl007_with_min_level(LogLevel::Info);
+        let rule_result = check_first_call(
+            r#"async def f():
+    async for item in aiter():
+        log.debug("processing_item", item_id=item.id)"#,
             checker,
         );
         assert_eq!(rule_result.status, Status::Pass, "{}", rule_result.feedback);

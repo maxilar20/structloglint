@@ -61,3 +61,48 @@ mod test_helpers {
         check_fn(call.call)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast_walker::{ParentContext, collect_log_calls};
+    use crate::models::Status;
+    use rustpython_parser::Parse;
+    use rustpython_parser::ast::Suite;
+
+    #[test]
+    fn sl009_default_rejects_event_over_30_chars() {
+        let source = r#"log.info("this_event_string_is_thirty_five_chars")"#;
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<_> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        let call = calls.first().expect("no log call found");
+        let results = check_all(call);
+        let sl009 = results.iter().find(|r| r.rule_id == "SL009").unwrap();
+        assert_eq!(
+            sl009.status,
+            Status::Fail,
+            "a 35-char event should fail with default max of 30",
+        );
+    }
+
+    #[test]
+    fn sl009_default_allows_event_under_30_chars() {
+        let source = r#"log.info("short_event_string")"#;
+        let stmts = Suite::parse(source, "<test>").expect("parse failed");
+        let calls: Vec<_> = stmts
+            .iter()
+            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
+            .collect();
+        let call = calls.first().expect("no log call found");
+        let results = check_all(call);
+        let sl009 = results.iter().find(|r| r.rule_id == "SL009").unwrap();
+        assert_eq!(
+            sl009.status,
+            Status::Pass,
+            "an 18-char event should pass with default max of 30",
+        );
+    }
+}

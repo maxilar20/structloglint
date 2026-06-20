@@ -16,7 +16,7 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 | SL003 | error | Do not use `%`-formatting in the event argument | done |
 | SL004 | error | Do not use `.format()` in the event argument | done |
 | SL005 | error | `log.exception()` only inside `except` blocks | done |
-| SL006 | warning | Prefer `log.exception()` over `log.error()` in `except` | done |
+| SL006 | error | Prefer `log.exception()` over `log.error()` in `except` | done |
 | SL007 | warning | No logging above `debug` inside loop bodies | done |
 | SL008 | error | Event string must match the configured case style | done |
 | SL009 | warning | Event string exceeds maximum length | done |
@@ -366,7 +366,7 @@ SL007 = "off"        # disable loop check
 | `exclude` | list of globs | `[]` | File patterns to skip (takes precedence over `include`). |
 | `include-files` | list of paths | `[]` | Explicit file paths to check. |
 | `exclude-files` | list of paths | `[]` | Explicit file paths to skip. |
-| `max-event-length` | integer | `50` | Maximum event string length (SL009). |
+| `max-event-length` | integer | `30` | Maximum event string length (SL009). |
 | `event-case-style` | string | `"snake_case"` | Required event case style (SL008). |
 | `loop-log-level` | string | `"debug"` | Max log level allowed inside loops (SL007). |
 
