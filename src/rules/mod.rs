@@ -41,44 +41,35 @@ pub fn check_all(log_call: &LogCall, config: &Config) -> Vec<RuleResult> {
         result
     };
 
+    macro_rules! check {
+        ($results:ident, $id:literal, $func:expr $(, $arg:expr)*) => {
+            if should_run($id) {
+                $results.push(apply_severity($func(log_call $(, $arg)*)));
+            }
+        };
+    }
+
     let mut results = Vec::with_capacity(9);
 
-    if should_run("SL001") {
-        results.push(apply_severity(sl001::check_sl001(log_call.call)));
-    }
-    if should_run("SL002") {
-        results.push(apply_severity(sl002::check_sl002(log_call.call)));
-    }
-    if should_run("SL003") {
-        results.push(apply_severity(sl003::check_sl003(log_call.call)));
-    }
-    if should_run("SL004") {
-        results.push(apply_severity(sl004::check_sl004(log_call.call)));
-    }
-    if should_run("SL005") {
-        results.push(apply_severity(sl005::check_sl005(log_call)));
-    }
-    if should_run("SL006") {
-        results.push(apply_severity(sl006::check_sl006(log_call)));
-    }
-    if should_run("SL007") {
-        results.push(apply_severity(sl007::check_sl007(
-            log_call,
-            config.min_loop_log_level,
-        )));
-    }
-    if should_run("SL008") {
-        results.push(apply_severity(sl008::check_sl008(
-            log_call,
-            config.case_style,
-        )));
-    }
-    if should_run("SL009") {
-        results.push(apply_severity(sl009::check_sl009(
-            log_call,
-            config.max_event_length,
-        )));
-    }
+    check!(results, "SL001", sl001::check_sl001);
+    check!(results, "SL002", sl002::check_sl002);
+    check!(results, "SL003", sl003::check_sl003);
+    check!(results, "SL004", sl004::check_sl004);
+    check!(results, "SL005", sl005::check_sl005);
+    check!(results, "SL006", sl006::check_sl006);
+    check!(
+        results,
+        "SL007",
+        sl007::check_sl007,
+        config.min_loop_log_level
+    );
+    check!(results, "SL008", sl008::check_sl008, config.case_style);
+    check!(
+        results,
+        "SL009",
+        sl009::check_sl009,
+        config.max_event_length
+    );
 
     results
 }
@@ -101,19 +92,6 @@ mod test_helpers {
             .collect();
         let call = calls.first().expect("no log call found");
         check_fn(call)
-    }
-
-    pub fn check_first_call_expr(
-        source: &str,
-        check_fn: fn(&rustpython_parser::ast::ExprCall) -> RuleResult,
-    ) -> RuleResult {
-        let stmts = Suite::parse(source, "<test>").expect("parse failed");
-        let calls: Vec<LogCall> = stmts
-            .iter()
-            .flat_map(|s| collect_log_calls(s, ParentContext::Module))
-            .collect();
-        let call = calls.first().expect("no log call found");
-        check_fn(call.call)
     }
 }
 

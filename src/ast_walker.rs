@@ -178,6 +178,10 @@ fn walk_match<'a>(match_stmt: &'a ast::StmtMatch) -> Vec<LogCall<'a>> {
 
 #[cfg(test)]
 mod tests {
+    fn src(code: &str) -> String {
+        format!("import structlog\nlog = structlog.get_logger()\n{code}")
+    }
+
     use super::*;
     use rustpython_parser::Parse;
     use rustpython_parser::ast::Suite;
@@ -203,142 +207,119 @@ mod tests {
 
     #[test]
     fn direct_log_call() {
-        let source =
-            "import structlog\nlog = structlog.get_logger()\nlog.info('payment_complete')\n";
-        assert_eq!(find_log_calls(source), 1);
+        let source = src("log.info('payment_complete')\n");
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn direct_log_call_multiple_levels() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-log.info("a")
+        let source = src(r#"log.info("a")
 log.debug("b")
 log.warning("c")
 log.error("d")
 log.exception("e")
 log.critical("f")
-"#;
-        assert_eq!(find_log_calls(source), 6);
+"#);
+        assert_eq!(find_log_calls(&source), 6);
     }
 
     #[test]
     fn ignore_non_structlog_print() {
         let source = "print('hello')\n";
-        assert_eq!(find_log_calls(source), 0);
+        assert_eq!(find_log_calls(&source), 0);
     }
 
     #[test]
     fn ignore_non_log_attribute() {
         let source = "obj = object()\nobj.attr()\n";
-        assert_eq!(find_log_calls(source), 0);
+        assert_eq!(find_log_calls(&source), 0);
     }
 
     // ── Block traversal (count) ─────────────────────────────────────
 
     #[test]
     fn inside_if_statement() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if True:
+        let source = src(r#"if True:
     log.info("a")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_nested_if() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if True:
+        let source = src(r#"if True:
     if True:
         log.info("nested")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_function_def() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-def foo():
+        let source = src(r#"def foo():
     log.info("bar")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_for_loop() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-for i in []:
+        let source = src(r#"for i in []:
     log.debug("iter")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_for_orelse() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-for i in []:
+        let source = src(r#"for i in []:
     var = 1+1
 else:
     log.info("else")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_while_loop() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-while False:
+        let source = src(r#"while False:
     log.warning("never")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_try_and_except_and_finally() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     log.info("a")
 except:
     log.error("b")
 finally:
     log.debug("c")
-"#;
-        assert_eq!(find_log_calls(source), 3);
+"#);
+        assert_eq!(find_log_calls(&source), 3);
     }
 
     #[test]
     fn inside_with_statement() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-with open(""):
+        let source = src(r#"with open(""):
     log.info("inside")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_class_method() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-class Foo:
+        let source = src(r#"class Foo:
     def method(self):
         log.info("inside")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn deep_nesting() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-def f():
+        let source = src(r#"def f():
     for i in []:
         if True:
             try:
@@ -347,451 +328,393 @@ def f():
                 log.error("b")
             finally:
                 log.debug("c")
-"#;
-        assert_eq!(find_log_calls(source), 3);
+"#);
+        assert_eq!(find_log_calls(&source), 3);
     }
 
     #[test]
     fn inside_async_for() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     async for i in aiter():
         log.info("async_iter")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_async_with() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     async with ctx():
         log.info("async_with")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_async_function() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     log.info("async_fn")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_match_case() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-match cmd:
+        let source = src(r#"match cmd:
     case "start":
         log.info("starting")
     case "stop":
         log.info("stopping")
-"#;
-        assert_eq!(find_log_calls(source), 2);
+"#);
+        assert_eq!(find_log_calls(&source), 2);
     }
 
     #[test]
     fn inside_try_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     pass
 except:
     pass
 else:
     log.info("no_error")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_try_star() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     log.info("body")
 except* ValueError:
     log.error("val_err")
 except* TypeError:
     log.error("type_err")
-"#;
-        assert_eq!(find_log_calls(source), 3);
+"#);
+        assert_eq!(find_log_calls(&source), 3);
     }
 
     #[test]
     fn inside_while_orelse() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-while False:
+        let source = src(r#"while False:
     pass
 else:
     log.info("done")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_if_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if False:
+        let source = src(r#"if False:
     pass
 else:
     log.info("else_branch")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn inside_elif() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if False:
+        let source = src(r#"if False:
     log.info("if_branch")
 elif True:
     log.info("elif_branch")
 else:
     log.info("else_branch")
-"#;
-        assert_eq!(find_log_calls(source), 3);
+"#);
+        assert_eq!(find_log_calls(&source), 3);
     }
 
     #[test]
     fn inside_async_for_orelse() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     async for i in aiter():
         pass
     else:
         log.info("async_for_else")
-"#;
-        assert_eq!(find_log_calls(source), 1);
+"#);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     // ── Context assignment ──────────────────────────────────────────
 
     #[test]
     fn context_module_level() {
-        let source = "import structlog\nlog = structlog.get_logger()\nlog.info('hi')\n";
+        let source = src("log.info('hi')\n");
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Module]
         );
     }
 
     #[test]
     fn context_if_block() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if True:
+        let source = src(r#"if True:
     log.info("x")
-"#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::If]);
+"#);
+        assert_eq!(
+            find_log_calls_with_context(&source),
+            vec![ParentContext::If]
+        );
     }
 
     #[test]
     fn context_else_block() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if False:
+        let source = src(r#"if False:
     pass
 else:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Else]
         );
     }
 
     #[test]
     fn context_elif_body_is_if() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if False:
+        let source = src(r#"if False:
     pass
 elif True:
     log.info("x")
-"#;
-        assert_eq!(find_log_calls_with_context(source), vec![ParentContext::If]);
+"#);
+        assert_eq!(
+            find_log_calls_with_context(&source),
+            vec![ParentContext::If]
+        );
     }
 
     #[test]
     fn context_elif_else_is_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if False:
+        let source = src(r#"if False:
     pass
 elif False:
     pass
 else:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Else]
         );
     }
 
     #[test]
     fn context_for_loop() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-for i in []:
+        let source = src(r#"for i in []:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::For]
         );
     }
 
     #[test]
     fn context_for_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-for i in []:
+        let source = src(r#"for i in []:
     pass
 else:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::ForElse]
         );
     }
 
     #[test]
     fn context_while_loop() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-while True:
+        let source = src(r#"while True:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::While]
         );
     }
 
     #[test]
     fn context_while_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-while False:
+        let source = src(r#"while False:
     pass
 else:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::WhileElse]
         );
     }
 
     #[test]
     fn context_except_block() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     pass
 except:
     log.exception("boom")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Except]
         );
     }
 
     #[test]
     fn context_try_body() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     log.info("x")
 except:
     pass
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Try]
         );
     }
 
     #[test]
     fn context_try_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     pass
 except:
     pass
 else:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::TryElse]
         );
     }
 
     #[test]
     fn context_finally() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     pass
 except:
     pass
 finally:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Finally]
         );
     }
 
     #[test]
     fn context_function() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-def foo():
+        let source = src(r#"def foo():
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Function]
         );
     }
 
     #[test]
     fn context_async_function() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def foo():
+        let source = src(r#"async def foo():
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::AsyncFunction]
         );
     }
 
     #[test]
     fn context_with() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-with open(""):
+        let source = src(r#"with open(""):
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::With]
         );
     }
 
     #[test]
     fn context_async_with() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     async with ctx():
         log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::AsyncWith]
         );
     }
 
     #[test]
     fn context_class() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-class Foo:
+        let source = src(r#"class Foo:
     log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Class]
         );
     }
 
     #[test]
     fn context_async_for() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     async for i in aiter():
         log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::AsyncFor]
         );
     }
 
     #[test]
     fn context_async_for_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-async def f():
+        let source = src(r#"async def f():
     async for i in aiter():
         pass
     else:
         log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::AsyncForElse]
         );
     }
 
     #[test]
     fn context_match() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-match cmd:
+        let source = src(r#"match cmd:
     case "start":
         log.info("x")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Match]
         );
     }
 
     #[test]
     fn context_nested_retains_deepest() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-for i in []:
+        let source = src(r#"for i in []:
     if True:
         try:
             pass
         except:
             log.exception("inside except")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Except]
         );
     }
 
     #[test]
     fn context_full_try_all_branches() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-try:
+        let source = src(r#"try:
     log.info("try_body")
 except:
     log.error("except_body")
@@ -799,9 +722,9 @@ else:
     log.info("try_else")
 finally:
     log.debug("finally_body")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![
                 ParentContext::Try,
                 ParentContext::Except,
@@ -813,47 +736,41 @@ finally:
 
     #[test]
     fn context_if_elif_else_all_branches() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-if True:
+        let source = src(r#"if True:
     log.info("if_body")
 elif True:
     log.info("elif_body")
 else:
     log.info("else_body")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::If, ParentContext::If, ParentContext::Else]
         );
     }
 
     #[test]
     fn context_for_body_and_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-for i in []:
+        let source = src(r#"for i in []:
     log.info("body")
 else:
     log.info("else")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::For, ParentContext::ForElse]
         );
     }
 
     #[test]
     fn context_while_body_and_else() {
-        let source = r#"import structlog
-log = structlog.get_logger()
-while True:
+        let source = src(r#"while True:
     log.info("body")
 else:
     log.info("else")
-"#;
+"#);
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::While, ParentContext::WhileElse]
         );
     }
@@ -919,7 +836,7 @@ class Foo:
     def method(self):
         self.log.info("a")
 "#;
-        assert_eq!(find_log_calls(source), 1);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
@@ -929,7 +846,7 @@ class Foo:
     def method(self):
         self.logger.info("a")
 "#;
-        assert_eq!(find_log_calls(source), 1);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
@@ -940,13 +857,13 @@ class Foo:
     def method(cls):
         cls.logger.info("a")
 "#;
-        assert_eq!(find_log_calls(source), 1);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
     fn attr_chain_app_logger() {
         let source = r#"app.logger.warning("a")"#;
-        assert_eq!(find_log_calls(source), 1);
+        assert_eq!(find_log_calls(&source), 1);
     }
 
     #[test]
@@ -956,7 +873,7 @@ class Foo:
     def method(self):
         self.helper.info("a")
 "#;
-        assert_eq!(find_log_calls(source), 0);
+        assert_eq!(find_log_calls(&source), 0);
     }
 
     #[test]
@@ -966,7 +883,7 @@ class Foo:
     def method(self):
         self.log.do_stuff("a")
 "#;
-        assert_eq!(find_log_calls(source), 0);
+        assert_eq!(find_log_calls(&source), 0);
     }
 
     #[test]
@@ -980,7 +897,7 @@ class Foo:
             self.logger.exception("boom")
 "#;
         assert_eq!(
-            find_log_calls_with_context(source),
+            find_log_calls_with_context(&source),
             vec![ParentContext::Except]
         );
     }

@@ -1,11 +1,12 @@
 use std::path::Path;
 
+use globset::Candidate;
+use ignore::WalkBuilder;
 use rustpython_parser::Parse;
 use rustpython_parser::ast::Suite;
 use structloglint::config::{self, Config};
 use structloglint::models::Status;
 use structloglint::{analyzer, rules::case_style::CaseStyle};
-use walkdir::WalkDir;
 
 fn analyze_fixture(fixture: &str, file: &str) -> Vec<(String, Status)> {
     let fixture_dir = Path::new("tests/fixtures").join(fixture);
@@ -252,24 +253,32 @@ fn rule_severity_sl008_uses_default_fail() {
 
 fn walk_and_filter_fixture(fixture: &str, config: &Config) -> (Vec<String>, Vec<String>) {
     let fixture_dir = Path::new("tests/fixtures").join(fixture);
+    let start_path = std::fs::canonicalize(&fixture_dir).unwrap();
     let exclude_set = config.build_exclude_globset().unwrap();
 
     let mut included = Vec::new();
     let mut excluded = Vec::new();
 
-    for entry in WalkDir::new(&fixture_dir)
-        .into_iter()
+    for entry in WalkBuilder::new(&start_path)
+        .standard_filters(false)
+        .hidden(false)
+        .build()
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "py"))
+        .filter(|e| {
+            e.file_type().is_some_and(|ft| ft.is_file())
+                && e.path().extension().is_some_and(|ext| ext == "py")
+        })
     {
-        let rel = entry
-            .path()
-            .strip_prefix(&fixture_dir)
-            .unwrap_or(entry.path());
-        if exclude_set.is_match(rel.to_string_lossy().as_ref()) {
-            excluded.push(rel.to_string_lossy().to_string());
+        let rel = entry.path().strip_prefix(&start_path).unwrap();
+        let rel_str = rel.to_string_lossy().to_string();
+        let file_path = Candidate::new(rel);
+        let file_basename = rel.file_name().map(Candidate::new);
+        if exclude_set.is_match_candidate(&file_path)
+            || file_basename.is_some_and(|b| exclude_set.is_match_candidate(&b))
+        {
+            excluded.push(rel_str);
         } else {
-            included.push(rel.to_string_lossy().to_string());
+            included.push(rel_str);
         }
     }
 

@@ -7,3 +7,5 @@ __pycache__
 *.whl
 *.so
 .venv
+!tests/fixtures/**/.venv/
+!tests/fixtures/**/__pycache__/

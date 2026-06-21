@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -38,39 +37,18 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
-    Io(std::io::Error),
-    Toml(toml::de::Error),
+    #[error("failed to read config file: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("failed to parse config file: {0}")]
+    Toml(#[from] toml::de::Error),
+    #[error("invalid case style: {0}")]
     InvalidCaseStyle(String),
+    #[error("invalid log level: {0}")]
     InvalidLogLevel(String),
+    #[error("invalid rule severity: {0}")]
     InvalidRuleSeverity(String),
-}
-
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Io(e) => write!(f, "failed to read config file: {e}"),
-            Self::Toml(e) => write!(f, "failed to parse config file: {e}"),
-            Self::InvalidCaseStyle(s) => write!(f, "invalid case style: {s}"),
-            Self::InvalidLogLevel(s) => write!(f, "invalid log level: {s}"),
-            Self::InvalidRuleSeverity(s) => write!(f, "invalid rule severity: {s}"),
-        }
-    }
-}
-
-impl std::error::Error for ConfigError {}
-
-impl From<std::io::Error> for ConfigError {
-    fn from(e: std::io::Error) -> Self {
-        Self::Io(e)
-    }
-}
-
-impl From<toml::de::Error> for ConfigError {
-    fn from(e: toml::de::Error) -> Self {
-        Self::Toml(e)
-    }
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -110,14 +88,14 @@ impl RawConfig {
         let case_style = match self.event_case_style {
             Some(s) => s
                 .parse::<CaseStyle>()
-                .map_err(|()| ConfigError::InvalidCaseStyle(s))?,
+                .map_err(|_| ConfigError::InvalidCaseStyle(s))?,
             None => defaults.case_style,
         };
 
         let min_loop_log_level = match self.loop_log_level {
             Some(s) => s
                 .parse::<LogLevel>()
-                .map_err(|()| ConfigError::InvalidLogLevel(s))?,
+                .map_err(|_| ConfigError::InvalidLogLevel(s))?,
             None => defaults.min_loop_log_level,
         };
 
@@ -127,7 +105,7 @@ impl RawConfig {
                 for (rule_id, severity_str) in map {
                     let severity = severity_str
                         .parse::<RuleSeverity>()
-                        .map_err(|()| ConfigError::InvalidRuleSeverity(severity_str))?;
+                        .map_err(|_| ConfigError::InvalidRuleSeverity(severity_str))?;
                     parsed.insert(rule_id, severity);
                 }
                 parsed
@@ -275,7 +253,7 @@ mod tests {
             "pyproject.toml",
             r#"
 [tool.structloglint]
-event-case-style = "camelCase"
+event-case-style = "camel_case"
 max-event-length = 50
 loop-log-level = "debug"
 "#,
@@ -326,7 +304,7 @@ line-length = 120
             dir.path(),
             "structloglint.toml",
             r#"
-event-case-style = "kebab-case"
+event-case-style = "kebab_case"
 max-event-length = 60
 "#,
         );
@@ -535,62 +513,67 @@ SL008 = "warning"
         assert_eq!(config.rules.get("SL008"), Some(&RuleSeverity::Warning));
     }
 
+    fn is_excluded(set: &GlobSet, path: &str) -> bool {
+        let candidate = globset::Candidate::new(path);
+        set.is_match_candidate(&candidate)
+    }
+
     #[test]
     fn default_excludes_venv_directories() {
         let config = Config::default();
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match(".venv/app.py"));
-        assert!(set.is_match("venv/app.py"));
-        assert!(set.is_match("some/deep/path/.venv/lib/module.py"));
-        assert!(set.is_match("another/venv/something.py"));
+        assert!(is_excluded(&ov, ".venv/app.py"));
+        assert!(is_excluded(&ov, "venv/app.py"));
+        assert!(is_excluded(&ov, "some/deep/path/.venv/lib/module.py"));
+        assert!(is_excluded(&ov, "another/venv/something.py"));
     }
 
     #[test]
     fn default_excludes_node_modules_and_cache() {
         let config = Config::default();
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match("node_modules/some_lib/file.py"));
-        assert!(set.is_match("project/node_modules/pkg/index.py"));
-        assert!(set.is_match("__pycache__/cached.py"));
-        assert!(set.is_match("migrations/001_init.py"));
+        assert!(is_excluded(&ov, "node_modules/some_lib/file.py"));
+        assert!(is_excluded(&ov, "project/node_modules/pkg/index.py"));
+        assert!(is_excluded(&ov, "__pycache__/cached.py"));
+        assert!(is_excluded(&ov, "migrations/001_init.py"));
     }
 
     #[test]
     fn default_excludes_dot_directories() {
         let config = Config::default();
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match(".git/index.py"));
-        assert!(set.is_match(".tox/some.py"));
-        assert!(set.is_match(".nox/some.py"));
-        assert!(set.is_match(".mypy_cache/something.py"));
-        assert!(set.is_match(".pytest_cache/v/cache/lastfailed"));
-        assert!(set.is_match(".ruff_cache/0.0.0/1234567890.py"));
+        assert!(is_excluded(&ov, ".git/index.py"));
+        assert!(is_excluded(&ov, ".tox/some.py"));
+        assert!(is_excluded(&ov, ".nox/some.py"));
+        assert!(is_excluded(&ov, ".mypy_cache/something.py"));
+        assert!(is_excluded(&ov, ".pytest_cache/v/cache/lastfailed"));
+        assert!(is_excluded(&ov, ".ruff_cache/0.0.0/1234567890.py"));
     }
 
     #[test]
     fn default_excludes_pyc_and_pyo_files() {
         let config = Config::default();
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match("foo.pyc"));
-        assert!(set.is_match("bar.pyo"));
-        assert!(set.is_match("some/deep/path.pyc"));
+        assert!(is_excluded(&ov, "foo.pyc"));
+        assert!(is_excluded(&ov, "bar.pyo"));
+        assert!(is_excluded(&ov, "some/deep/path.pyc"));
     }
 
     #[test]
     fn default_excludes_allows_normal_python_files() {
         let config = Config::default();
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(!set.is_match("src/main.py"));
-        assert!(!set.is_match("app.py"));
-        assert!(!set.is_match("tests/test_app.py"));
-        assert!(!set.is_match("my_module/utils.py"));
-        assert!(!set.is_match("some_venv/app.py"));
-        assert!(!set.is_match("environment/app.py"));
+        assert!(!is_excluded(&ov, "src/main.py"));
+        assert!(!is_excluded(&ov, "app.py"));
+        assert!(!is_excluded(&ov, "tests/test_app.py"));
+        assert!(!is_excluded(&ov, "my_module/utils.py"));
+        assert!(!is_excluded(&ov, "some_venv/app.py"));
+        assert!(!is_excluded(&ov, "environment/app.py"));
     }
 
     #[test]
@@ -598,11 +581,11 @@ SL008 = "warning"
         let mut config = Config::default();
         config.extend_exclude = Some(vec!["my_internal/**".to_string()]);
 
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match(".venv/app.py"));
-        assert!(set.is_match("my_internal/secret.py"));
-        assert!(!set.is_match("src/main.py"));
+        assert!(is_excluded(&ov, ".venv/app.py"));
+        assert!(is_excluded(&ov, "my_internal/secret.py"));
+        assert!(!is_excluded(&ov, "src/main.py"));
     }
 
     #[test]
@@ -610,16 +593,16 @@ SL008 = "warning"
         let mut config = Config::default();
         config.exclude = Some(vec!["src/**".to_string(), "tests/test_*.py".to_string()]);
 
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match("src/main.py"));
-        assert!(set.is_match("tests/test_app.py"));
-        assert!(set.is_match("tests/test_utils.py"));
+        assert!(is_excluded(&ov, "src/main.py"));
+        assert!(is_excluded(&ov, "tests/test_app.py"));
+        assert!(is_excluded(&ov, "tests/test_utils.py"));
         assert!(
-            !set.is_match(".venv/app.py"),
+            !is_excluded(&ov, ".venv/app.py"),
             ".venv should NOT be excluded when explicitly overriding excludes"
         );
-        assert!(!set.is_match("app.py"));
+        assert!(!is_excluded(&ov, "app.py"));
     }
 
     #[test]
@@ -627,11 +610,11 @@ SL008 = "warning"
         let mut config = Config::default();
         config.exclude = Some(vec![]);
 
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(!set.is_match(".venv/app.py"));
-        assert!(!set.is_match("node_modules/pkg.py"));
-        assert!(!set.is_match("src/main.py"));
+        assert!(!is_excluded(&ov, ".venv/app.py"));
+        assert!(!is_excluded(&ov, "node_modules/pkg.py"));
+        assert!(!is_excluded(&ov, "src/main.py"));
     }
 
     #[test]
@@ -639,11 +622,11 @@ SL008 = "warning"
         let mut config = Config::default();
         config.extend_exclude = Some(vec![]);
 
-        let set = config.build_exclude_globset().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
-        assert!(set.is_match(".venv/app.py"));
-        assert!(set.is_match("node_modules/pkg.py"));
-        assert!(!set.is_match("src/main.py"));
+        assert!(is_excluded(&ov, ".venv/app.py"));
+        assert!(is_excluded(&ov, "node_modules/pkg.py"));
+        assert!(!is_excluded(&ov, "src/main.py"));
     }
 
     #[test]
@@ -668,14 +651,14 @@ exclude = ["generated/**", "third_party/**"]
         );
         assert!(config.extend_exclude.is_none());
 
-        let set = config.build_exclude_globset().unwrap();
-        assert!(set.is_match("generated/code.py"));
-        assert!(set.is_match("third_party/lib.py"));
+        let ov = config.build_exclude_globset().unwrap();
+        assert!(is_excluded(&ov, "generated/code.py"));
+        assert!(is_excluded(&ov, "third_party/lib.py"));
         assert!(
-            !set.is_match(".venv/app.py"),
+            !is_excluded(&ov, ".venv/app.py"),
             "default excludes should be overridden"
         );
-        assert!(!set.is_match("src/app.py"));
+        assert!(!is_excluded(&ov, "src/app.py"));
     }
 
     #[test]
@@ -697,13 +680,13 @@ extend-exclude = ["generated/**"]
         );
         assert!(config.exclude.is_none());
 
-        let set = config.build_exclude_globset().unwrap();
-        assert!(set.is_match("generated/code.py"));
+        let ov = config.build_exclude_globset().unwrap();
+        assert!(is_excluded(&ov, "generated/code.py"));
         assert!(
-            set.is_match(".venv/app.py"),
+            is_excluded(&ov, ".venv/app.py"),
             "default excludes should still apply"
         );
-        assert!(!set.is_match("src/app.py"));
+        assert!(!is_excluded(&ov, "src/app.py"));
     }
 
     #[test]

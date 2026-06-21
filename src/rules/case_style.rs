@@ -1,8 +1,5 @@
-use std::fmt;
-use std::str::FromStr;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(clippy::enum_variant_names)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "snake_case")]
 pub enum CaseStyle {
     CamelCase,
     ConstantCase,
@@ -17,34 +14,6 @@ pub enum CaseStyle {
 }
 
 impl CaseStyle {
-    pub const ALL: &[CaseStyle] = &[
-        Self::CamelCase,
-        Self::ConstantCase,
-        Self::KebabCase,
-        Self::LowerCase,
-        Self::PascalCase,
-        Self::SentenceCase,
-        Self::SnakeCase,
-        Self::TitleCase,
-        Self::TrainCase,
-        Self::UpperCase,
-    ];
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::CamelCase => "camelCase",
-            Self::ConstantCase => "CONSTANT_CASE",
-            Self::KebabCase => "kebab-case",
-            Self::LowerCase => "lower case",
-            Self::PascalCase => "PascalCase",
-            Self::SentenceCase => "sentence case",
-            Self::SnakeCase => "snake_case",
-            Self::TitleCase => "Title Case",
-            Self::TrainCase => "Train-Case",
-            Self::UpperCase => "UPPER CASE",
-        }
-    }
-
     pub fn convert(&self, s: &str) -> String {
         use inflections::case;
         match self {
@@ -75,23 +44,5 @@ impl CaseStyle {
             Self::TrainCase => case::is_train_case(s),
             Self::UpperCase => case::is_upper_case(s),
         }
-    }
-}
-
-impl FromStr for CaseStyle {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::ALL
-            .iter()
-            .find(|c| c.as_str() == s)
-            .copied()
-            .ok_or(())
-    }
-}
-
-impl fmt::Display for CaseStyle {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(self.as_str())
     }
 }
