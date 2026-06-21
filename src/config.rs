@@ -513,8 +513,9 @@ SL008 = "warning"
         assert_eq!(config.rules.get("SL008"), Some(&RuleSeverity::Warning));
     }
 
-    fn is_excluded(ov: &GlobSet, path: &str) -> bool {
-        ov.is_match(path)
+    fn is_excluded(set: &GlobSet, path: &str) -> bool {
+        let candidate = globset::Candidate::new(path);
+        set.is_match_candidate(&candidate)
     }
 
     #[test]
