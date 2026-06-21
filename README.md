@@ -2,7 +2,7 @@
 
 A fast, opinionated linter for [structlog](https://www.structlog.org/) log calls in Python. Written in Rust.
 
-> **Status: Early development (v0.1.1)**
+> **Status: Early development (v0.3.0)**
 
 ## Installation
 
@@ -82,6 +82,9 @@ See [RULES.md](RULES.md#configuration) for all configuration options.
 | Cross-platform builds | CI matrix for Linux (x86_64, musl, aarch64), macOS (x86_64, aarch64), Windows (x86_64) |
 | Binary distribution | Publish wheels per platform to PyPI via maturin |
 | Exit codes | Non-zero exit on findings for CI gating |
+| File filtering | `exclude`, `extend-exclude`, `include` glob patterns via config and CLI (`--exclude`, `--extend-exclude`) |
+| Default excludes | Automatically skip `.venv/`, `node_modules/`, `__pycache__/`, `.git/`, `migrations/`, and 12 other common patterns |
+| File walking | `ignore` crate for directory traversal |
 
 ### Must Have
 
