@@ -37,6 +37,12 @@ struct Args {
 
     #[arg(long, value_name = "RULES", value_delimiter = ',')]
     ignore: Option<Vec<String>>,
+
+    #[arg(long, value_name = "PATTERN", value_delimiter = ',')]
+    exclude: Option<Vec<String>>,
+
+    #[arg(long, value_name = "PATTERN", value_delimiter = ',')]
+    extend_exclude: Option<Vec<String>>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -62,14 +68,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.ignore.is_some() {
         config.ignore = args.ignore;
     }
+    if args.exclude.is_some() {
+        config.exclude = args.exclude;
+    }
+    if args.extend_exclude.is_some() {
+        config.extend_exclude = args.extend_exclude;
+    }
     let mut stdout = io::stdout().lock();
     let mut total_errors = 0usize;
     let mut total_warnings = 0usize;
+
+    let start_path = std::path::Path::new(&args.path);
+    let exclude_set = config.build_exclude_globset()?;
 
     let files: Vec<_> = WalkDir::new(&args.path)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "py"))
+        .filter(|e| {
+            let rel = e.path().strip_prefix(start_path).unwrap_or(e.path());
+            !exclude_set.is_match(rel.to_string_lossy().as_ref())
+        })
         .collect();
 
     for file in &files {

@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use serde::Deserialize;
 
 use crate::models::{LogLevel, RuleSeverity};
@@ -16,6 +17,9 @@ pub struct Config {
     pub select: Option<Vec<String>>,
     pub ignore: Option<Vec<String>>,
     pub rules: HashMap<String, RuleSeverity>,
+    pub exclude: Option<Vec<String>>,
+    pub extend_exclude: Option<Vec<String>>,
+    pub include: Option<Vec<String>>,
 }
 
 impl Default for Config {
@@ -27,6 +31,9 @@ impl Default for Config {
             select: None,
             ignore: None,
             rules: HashMap::new(),
+            exclude: None,
+            extend_exclude: None,
+            include: None,
         }
     }
 }
@@ -78,6 +85,12 @@ struct RawConfig {
     ignore: Option<Vec<String>>,
     #[serde(default)]
     rules: Option<HashMap<String, String>>,
+    #[serde(default)]
+    exclude: Option<Vec<String>>,
+    #[serde(default)]
+    extend_exclude: Option<Vec<String>>,
+    #[serde(default)]
+    include: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -129,6 +142,9 @@ impl RawConfig {
             select: self.select,
             ignore: self.ignore,
             rules,
+            exclude: self.exclude,
+            extend_exclude: self.extend_exclude,
+            include: self.include,
         })
     }
 }
@@ -181,6 +197,54 @@ fn parse_pyproject(path: &Path) -> Result<Option<Config>, ConfigError> {
     match pyproject.tool.and_then(|t| t.structloglint) {
         Some(raw) => Ok(Some(raw.into_config()?)),
         None => Ok(None),
+    }
+}
+
+pub const DEFAULT_EXCLUDES: &[&str] = &[
+    "**/.venv/**",
+    "**/venv/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/*.pyo",
+    "**/.git/**",
+    "**/.tox/**",
+    "**/.nox/**",
+    "**/site-packages/**",
+    "**/__pypackages__/**",
+    "**/.eggs/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.mypy_cache/**",
+    "**/.pytest_cache/**",
+    "**/.ruff_cache/**",
+    "**/.direnv/**",
+    "**/migrations/**",
+];
+
+impl Config {
+    pub fn build_exclude_globset(&self) -> Result<GlobSet, globset::Error> {
+        let mut builder = GlobSetBuilder::new();
+
+        let patterns: Vec<String> = if let Some(ref exclude) = self.exclude {
+            if exclude.is_empty() {
+                return Ok(GlobSet::empty());
+            }
+            exclude.clone()
+        } else {
+            let mut pats: Vec<String> = DEFAULT_EXCLUDES.iter().map(|s| s.to_string()).collect();
+            if let Some(ref extend) = self.extend_exclude {
+                pats.extend(extend.iter().cloned());
+            }
+            pats
+        };
+
+        for pat in &patterns {
+            let glob = GlobBuilder::new(pat).literal_separator(true).build()?;
+            builder.add(glob);
+        }
+
+        builder.build()
     }
 }
 
@@ -469,5 +533,192 @@ SL008 = "warning"
         );
         assert_eq!(config.ignore, Some(vec!["SL009".to_string()]));
         assert_eq!(config.rules.get("SL008"), Some(&RuleSeverity::Warning));
+    }
+
+    #[test]
+    fn default_excludes_venv_directories() {
+        let config = Config::default();
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match(".venv/app.py"));
+        assert!(set.is_match("venv/app.py"));
+        assert!(set.is_match("some/deep/path/.venv/lib/module.py"));
+        assert!(set.is_match("another/venv/something.py"));
+    }
+
+    #[test]
+    fn default_excludes_node_modules_and_cache() {
+        let config = Config::default();
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match("node_modules/some_lib/file.py"));
+        assert!(set.is_match("project/node_modules/pkg/index.py"));
+        assert!(set.is_match("__pycache__/cached.py"));
+        assert!(set.is_match("migrations/001_init.py"));
+    }
+
+    #[test]
+    fn default_excludes_dot_directories() {
+        let config = Config::default();
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match(".git/index.py"));
+        assert!(set.is_match(".tox/some.py"));
+        assert!(set.is_match(".nox/some.py"));
+        assert!(set.is_match(".mypy_cache/something.py"));
+        assert!(set.is_match(".pytest_cache/v/cache/lastfailed"));
+        assert!(set.is_match(".ruff_cache/0.0.0/1234567890.py"));
+    }
+
+    #[test]
+    fn default_excludes_pyc_and_pyo_files() {
+        let config = Config::default();
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match("foo.pyc"));
+        assert!(set.is_match("bar.pyo"));
+        assert!(set.is_match("some/deep/path.pyc"));
+    }
+
+    #[test]
+    fn default_excludes_allows_normal_python_files() {
+        let config = Config::default();
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(!set.is_match("src/main.py"));
+        assert!(!set.is_match("app.py"));
+        assert!(!set.is_match("tests/test_app.py"));
+        assert!(!set.is_match("my_module/utils.py"));
+        assert!(!set.is_match("some_venv/app.py"));
+        assert!(!set.is_match("environment/app.py"));
+    }
+
+    #[test]
+    fn extend_exclude_adds_patterns() {
+        let mut config = Config::default();
+        config.extend_exclude = Some(vec!["my_internal/**".to_string()]);
+
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match(".venv/app.py"));
+        assert!(set.is_match("my_internal/secret.py"));
+        assert!(!set.is_match("src/main.py"));
+    }
+
+    #[test]
+    fn exclude_overrides_defaults() {
+        let mut config = Config::default();
+        config.exclude = Some(vec!["src/**".to_string(), "tests/test_*.py".to_string()]);
+
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match("src/main.py"));
+        assert!(set.is_match("tests/test_app.py"));
+        assert!(set.is_match("tests/test_utils.py"));
+        assert!(
+            !set.is_match(".venv/app.py"),
+            ".venv should NOT be excluded when explicitly overriding excludes"
+        );
+        assert!(!set.is_match("app.py"));
+    }
+
+    #[test]
+    fn empty_exclude_disables_all_excludes() {
+        let mut config = Config::default();
+        config.exclude = Some(vec![]);
+
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(!set.is_match(".venv/app.py"));
+        assert!(!set.is_match("node_modules/pkg.py"));
+        assert!(!set.is_match("src/main.py"));
+    }
+
+    #[test]
+    fn empty_extend_exclude_does_not_affect_defaults() {
+        let mut config = Config::default();
+        config.extend_exclude = Some(vec![]);
+
+        let set = config.build_exclude_globset().unwrap();
+
+        assert!(set.is_match(".venv/app.py"));
+        assert!(set.is_match("node_modules/pkg.py"));
+        assert!(!set.is_match("src/main.py"));
+    }
+
+    #[test]
+    fn pyproject_parses_exclude() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "pyproject.toml",
+            r#"
+[tool.structloglint]
+exclude = ["generated/**", "third_party/**"]
+"#,
+        );
+        let config = discover_config(dir.path()).unwrap();
+
+        assert_eq!(
+            config.exclude,
+            Some(vec![
+                "generated/**".to_string(),
+                "third_party/**".to_string()
+            ])
+        );
+        assert!(config.extend_exclude.is_none());
+
+        let set = config.build_exclude_globset().unwrap();
+        assert!(set.is_match("generated/code.py"));
+        assert!(set.is_match("third_party/lib.py"));
+        assert!(
+            !set.is_match(".venv/app.py"),
+            "default excludes should be overridden"
+        );
+        assert!(!set.is_match("src/app.py"));
+    }
+
+    #[test]
+    fn pyproject_parses_extend_exclude() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "pyproject.toml",
+            r#"
+[tool.structloglint]
+extend-exclude = ["generated/**"]
+"#,
+        );
+        let config = discover_config(dir.path()).unwrap();
+
+        assert_eq!(
+            config.extend_exclude,
+            Some(vec!["generated/**".to_string()])
+        );
+        assert!(config.exclude.is_none());
+
+        let set = config.build_exclude_globset().unwrap();
+        assert!(set.is_match("generated/code.py"));
+        assert!(
+            set.is_match(".venv/app.py"),
+            "default excludes should still apply"
+        );
+        assert!(!set.is_match("src/app.py"));
+    }
+
+    #[test]
+    fn pyproject_parses_include() {
+        let dir = tempfile::tempdir().unwrap();
+        write_temp_file(
+            dir.path(),
+            "pyproject.toml",
+            r#"
+[tool.structloglint]
+include = ["src/**"]
+"#,
+        );
+        let config = discover_config(dir.path()).unwrap();
+
+        assert_eq!(config.include, Some(vec!["src/**".to_string()]));
     }
 }

@@ -5,6 +5,7 @@ use rustpython_parser::ast::Suite;
 use structloglint::config::{self, Config};
 use structloglint::models::Status;
 use structloglint::{analyzer, rules::case_style::CaseStyle};
+use walkdir::WalkDir;
 
 fn analyze_fixture(fixture: &str, file: &str) -> Vec<(String, Status)> {
     let fixture_dir = Path::new("tests/fixtures").join(fixture);
@@ -244,5 +245,154 @@ fn rule_severity_sl008_uses_default_fail() {
         sl008.1,
         Status::Fail,
         "SL008 should retain its default error status"
+    );
+}
+
+// --- File exclusion tests ---
+
+fn walk_and_filter_fixture(fixture: &str, config: &Config) -> (Vec<String>, Vec<String>) {
+    let fixture_dir = Path::new("tests/fixtures").join(fixture);
+    let exclude_set = config.build_exclude_globset().unwrap();
+
+    let mut included = Vec::new();
+    let mut excluded = Vec::new();
+
+    for entry in WalkDir::new(&fixture_dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "py"))
+    {
+        let rel = entry
+            .path()
+            .strip_prefix(&fixture_dir)
+            .unwrap_or(entry.path());
+        if exclude_set.is_match(rel.to_string_lossy().as_ref()) {
+            excluded.push(rel.to_string_lossy().to_string());
+        } else {
+            included.push(rel.to_string_lossy().to_string());
+        }
+    }
+
+    (included, excluded)
+}
+
+#[test]
+fn default_excludes_filters_venv_and_other_dirs() {
+    let config = Config::default();
+    let (_included, excluded) = walk_and_filter_fixture("file_exclusion", &config);
+
+    let excluded_set: std::collections::HashSet<_> = excluded.iter().map(|s| s.as_str()).collect();
+
+    assert!(
+        excluded_set.contains(".venv/app.py"),
+        ".venv/app.py should be excluded. excluded: {excluded:?}"
+    );
+    assert!(
+        excluded_set.contains("venv/app.py"),
+        "venv/app.py should be excluded. excluded: {excluded:?}"
+    );
+    assert!(
+        excluded_set.contains("node_modules/some_lib/app.py"),
+        "node_modules should be excluded. excluded: {excluded:?}"
+    );
+    assert!(
+        excluded_set.contains("__pycache__/cached.py"),
+        "__pycache__ should be excluded. excluded: {excluded:?}"
+    );
+    assert!(
+        excluded_set.contains("migrations/001_init.py"),
+        "migrations should be excluded. excluded: {excluded:?}"
+    );
+}
+
+#[test]
+fn default_excludes_lets_normal_dirs_through() {
+    let config = Config::default();
+    let (included, _) = walk_and_filter_fixture("file_exclusion", &config);
+
+    let included_set: std::collections::HashSet<_> = included.iter().map(|s| s.as_str()).collect();
+
+    assert!(
+        included_set.contains("src/app.py"),
+        "src/app.py should be included. included: {included:?}"
+    );
+    assert!(
+        included_set.contains("my_module/app.py"),
+        "my_module/app.py should be included (not in default excludes). included: {included:?}"
+    );
+}
+
+#[test]
+fn default_excludes_only_filters_matching_patterns() {
+    let config = Config::default();
+    let (included, excluded) = walk_and_filter_fixture("file_exclusion", &config);
+
+    assert_eq!(
+        included.len(),
+        2,
+        "only src/app.py and my_module/app.py should be included"
+    );
+    assert_eq!(
+        excluded.len(),
+        5,
+        ".venv, venv, node_modules, __pycache__, and migrations should be excluded"
+    );
+}
+
+#[test]
+fn extend_exclude_adds_extra_patterns() {
+    let fixture_dir = Path::new("tests/fixtures/file_exclusion_extend");
+    let config = config::discover_config(fixture_dir).unwrap();
+
+    assert_eq!(
+        config.extend_exclude,
+        Some(vec!["my_module/**".to_string()])
+    );
+
+    let (included, excluded) = walk_and_filter_fixture("file_exclusion_extend", &config);
+
+    let excluded_set: std::collections::HashSet<_> = excluded.iter().map(|s| s.as_str()).collect();
+    let included_set: std::collections::HashSet<_> = included.iter().map(|s| s.as_str()).collect();
+
+    assert!(
+        excluded_set.contains(".venv/app.py"),
+        ".venv should still be excluded by defaults"
+    );
+    assert!(
+        excluded_set.contains("my_module/app.py"),
+        "my_module should be excluded by extend-exclude"
+    );
+    assert!(
+        included_set.contains("src/app.py"),
+        "src/app.py should be included"
+    );
+    assert!(
+        included_set.contains("other/app.py"),
+        "other/app.py should be included"
+    );
+}
+
+#[test]
+fn exclude_overrides_all_defaults() {
+    let fixture_dir = Path::new("tests/fixtures/file_exclusion_override");
+    let config = config::discover_config(fixture_dir).unwrap();
+
+    assert_eq!(config.exclude, Some(vec![]));
+
+    let (included, excluded) = walk_and_filter_fixture("file_exclusion_override", &config);
+
+    assert!(
+        excluded.is_empty(),
+        "empty exclude list should mean no exclusions"
+    );
+
+    let included_set: std::collections::HashSet<_> = included.iter().map(|s| s.as_str()).collect();
+    assert!(
+        included_set.contains("src/app.py"),
+        "src/app.py should be included"
+    );
+    assert!(
+        included_set.contains(".venv/app.py"),
+        ".venv/app.py should be included when exclude is explicitly empty"
     );
 }
