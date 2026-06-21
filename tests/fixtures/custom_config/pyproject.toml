@@ -4,6 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.8"
 
 [tool.structloglint]
-event-case-style = "camelCase"
+event-case-style = "camel_case"
 max-event-length = 50
 loop-log-level = "warning"

@@ -3,13 +3,13 @@ use std::io;
 use std::process;
 
 use clap::Parser;
+use ignore::WalkBuilder;
 use rustpython_parser::Parse;
 use structloglint::config;
 use structloglint::display::OutputFormat;
 use structloglint::models::LogLevel;
 use structloglint::rules::case_style::CaseStyle;
 use structloglint::{analyzer, display};
-use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(style) = &args.event_case_style {
         config.case_style = style
             .parse::<CaseStyle>()
-            .map_err(|()| format!("invalid case style: {style}"))?;
+            .map_err(|_| format!("invalid case style: {style}"))?;
     }
     if let Some(n) = args.max_event_length {
         config.max_event_length = n;
@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(level) = &args.loop_log_level {
         config.min_loop_log_level = level
             .parse::<LogLevel>()
-            .map_err(|()| format!("invalid log level: {level}"))?;
+            .map_err(|_| format!("invalid log level: {level}"))?;
     }
     if args.select.is_some() {
         config.select = args.select;
@@ -78,22 +78,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut total_errors = 0usize;
     let mut total_warnings = 0usize;
 
-    let start_path = std::path::Path::new(&args.path);
-    let exclude_set = config.build_exclude_globset()?;
+    let gi = config.build_overrides()?;
 
-    let files: Vec<_> = WalkDir::new(&args.path)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "py"))
-        .filter(|e| {
-            let rel = e.path().strip_prefix(start_path).unwrap_or(e.path());
-            !exclude_set.is_match(rel.to_string_lossy().as_ref())
+    let files: Vec<_> = WalkBuilder::new(&args.path)
+        .standard_filters(false)
+        .filter_entry(move |entry| {
+            let path = entry.path();
+            let is_dir = entry.file_type().is_some_and(|ft| ft.is_dir());
+            !matches!(gi.matched(path, is_dir), ignore::Match::Ignore(_))
         })
+        .build()
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.file_type().is_some_and(|ft| ft.is_file())
+                && e.path().extension().is_some_and(|ext| ext == "py")
+        })
+        .map(|e| e.into_path())
         .collect();
 
     for file in &files {
-        let file_path = file.path().to_string_lossy().to_string();
-        let python_code = fs::read_to_string(file.path())?;
+        let file_path = file.to_string_lossy().to_string();
+        let python_code = fs::read_to_string(file)?;
         let stmts = rustpython_parser::ast::Suite::parse(&python_code, &file_path)?;
         let findings = analyzer::analyze(&stmts, &config);
 

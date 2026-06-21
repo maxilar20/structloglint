@@ -11,10 +11,7 @@ pub fn check_sl007(log_call: &LogCall, min_log_level: LogLevel) -> RuleResult {
         log_call.context,
         ParentContext::While | ParentContext::For | ParentContext::AsyncFor
     ) {
-        let feedback = format!(
-            "logging at level `{min_log_level}` or above inside a loop body",
-            min_log_level = min_log_level.as_str()
-        );
+        let feedback = format!("logging at level `{min_log_level}` or above inside a loop body");
         return RuleResult::new("SL007", Status::Warning, feedback);
     }
 
