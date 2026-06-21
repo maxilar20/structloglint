@@ -252,7 +252,7 @@ fn rule_severity_sl008_uses_default_fail() {
 // --- File exclusion tests ---
 
 fn walk_and_filter_fixture(fixture: &str, config: &Config) -> (Vec<String>, Vec<String>) {
-    let fixture_dir = Path::new("tests/fixtures").join(fixture);
+    let fixture_dir = std::fs::canonicalize(Path::new("tests/fixtures").join(fixture)).unwrap();
     let exclude_set = config.build_exclude_globset().unwrap();
 
     let mut included = Vec::new();
@@ -268,10 +268,7 @@ fn walk_and_filter_fixture(fixture: &str, config: &Config) -> (Vec<String>, Vec<
                 && e.path().extension().is_some_and(|ext| ext == "py")
         })
     {
-        let rel = entry
-            .path()
-            .strip_prefix(&fixture_dir)
-            .unwrap_or(entry.path());
+        let rel = entry.path().strip_prefix(&fixture_dir).unwrap();
         let rel_str = rel.to_string_lossy().to_string();
         let file_path = Candidate::new(&rel);
         let file_basename = rel.file_name().map(Candidate::new);
