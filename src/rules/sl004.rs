@@ -1,10 +1,8 @@
-use rustpython_parser::ast;
-
 use super::expr_helpers::is_format;
-use crate::models::{RuleResult, Status};
+use crate::models::{LogCall, RuleResult, Status};
 
-pub fn check_sl004(call: &ast::ExprCall) -> RuleResult {
-    if let Some(event) = call.args.first()
+pub fn check_sl004(log_call: &LogCall) -> RuleResult {
+    if let Some(event) = log_call.call.args.first()
         && is_format(event)
     {
         return RuleResult::new(
@@ -20,11 +18,11 @@ pub fn check_sl004(call: &ast::ExprCall) -> RuleResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rules::test_helpers::check_first_call_expr;
+    use crate::rules::test_helpers::check_first_call;
 
     #[test]
     fn passes_with_keyword_arguments() {
-        let result = check_first_call_expr(
+        let result = check_first_call(
             "log.info('subscription_cancelled', user_id='u_123', reason='too_expensive')",
             check_sl004,
         );
@@ -33,7 +31,7 @@ mod tests {
 
     #[test]
     fn fails_with_positional_placeholders() {
-        let result = check_first_call_expr(
+        let result = check_first_call(
             "log.info('subscription cancelled for {}'.format('u_123'))",
             check_sl004,
         );
@@ -42,7 +40,7 @@ mod tests {
 
     #[test]
     fn fails_with_named_placeholders() {
-        let result = check_first_call_expr(
+        let result = check_first_call(
             "log.warning('user {user_id} cancelled: {reason}'.format(user_id='u_123', reason='too_expensive'))",
             check_sl004,
         );
@@ -51,7 +49,7 @@ mod tests {
 
     #[test]
     fn passes_with_positional_placeholders_in_value() {
-        let result = check_first_call_expr(
+        let result = check_first_call(
             "log.info('subscription_cancelled', summary='u={} r={}'.format('u_123', 'expensive'))",
             check_sl004,
         );
@@ -60,7 +58,7 @@ mod tests {
 
     #[test]
     fn fails_with_format_on_variable() {
-        let result = check_first_call_expr("log.info(var.format(user_id))", check_sl004);
+        let result = check_first_call("log.info(var.format(user_id))", check_sl004);
         assert_eq!(result.status, Status::Fail, "{}", result.feedback);
     }
 }
