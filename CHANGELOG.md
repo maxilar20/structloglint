@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.3.0...structloglint-v0.4.0) (2026-06-21)
+
+
+### Features
+
+* Add file exclusion support with glob patterns ([#7](https://github.com/maxilar20/structloglint/issues/7)) ([24adc03](https://github.com/maxilar20/structloglint/commit/24adc03c7a6254c2eb8c8e6e1b328eea5f927b72))
+
+
+### Bug Fixes
+
+* Update README to match version ([f589695](https://github.com/maxilar20/structloglint/commit/f589695acdd9ef1675bcb652b5bf957699639471))
+
+
+### Miscellaneous
+
+* Improve README for PyPI page ([885cb03](https://github.com/maxilar20/structloglint/commit/885cb0322e9df12d020ff28c7b9addd5039c60af))
+
 ## [0.3.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.2.0...structloglint-v0.3.0) (2026-06-20)
 
 
