@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use globset::Candidate;
 use ignore::WalkBuilder;
 use rustpython_parser::Parse;
 use rustpython_parser::ast::Suite;
@@ -252,13 +253,14 @@ fn rule_severity_sl008_uses_default_fail() {
 
 fn walk_and_filter_fixture(fixture: &str, config: &Config) -> (Vec<String>, Vec<String>) {
     let fixture_dir = Path::new("tests/fixtures").join(fixture);
-    let gi = config.build_overrides().unwrap();
+    let exclude_set = config.build_exclude_globset().unwrap();
 
     let mut included = Vec::new();
     let mut excluded = Vec::new();
 
     for entry in WalkBuilder::new(&fixture_dir)
         .standard_filters(false)
+        .hidden(false)
         .build()
         .filter_map(|e| e.ok())
         .filter(|e| {
@@ -271,7 +273,11 @@ fn walk_and_filter_fixture(fixture: &str, config: &Config) -> (Vec<String>, Vec<
             .strip_prefix(&fixture_dir)
             .unwrap_or(entry.path());
         let rel_str = rel.to_string_lossy().to_string();
-        if matches!(gi.matched(&rel_str, false), ignore::Match::Ignore(_)) {
+        let file_path = Candidate::new(&rel);
+        let file_basename = rel.file_name().map(Candidate::new);
+        if exclude_set.is_match_candidate(&file_path)
+            || file_basename.is_some_and(|b| exclude_set.is_match_candidate(&b))
+        {
             excluded.push(rel_str);
         } else {
             included.push(rel_str);

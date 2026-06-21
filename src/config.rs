@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use ignore::gitignore::{Gitignore, GitignoreBuilder};
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use serde::Deserialize;
 
 use crate::models::{LogLevel, RuleSeverity};
@@ -201,12 +201,12 @@ pub const DEFAULT_EXCLUDES: &[&str] = &[
 ];
 
 impl Config {
-    pub fn build_overrides(&self) -> Result<Gitignore, ignore::Error> {
-        let mut builder = GitignoreBuilder::new("");
+    pub fn build_exclude_globset(&self) -> Result<GlobSet, globset::Error> {
+        let mut builder = GlobSetBuilder::new();
 
         let patterns: Vec<String> = if let Some(ref exclude) = self.exclude {
             if exclude.is_empty() {
-                return Ok(Gitignore::empty());
+                return Ok(GlobSet::empty());
             }
             exclude.clone()
         } else {
@@ -218,7 +218,8 @@ impl Config {
         };
 
         for pat in &patterns {
-            builder.add_line(None, pat)?;
+            let glob = GlobBuilder::new(pat).literal_separator(true).build()?;
+            builder.add(glob);
         }
 
         builder.build()
@@ -512,14 +513,14 @@ SL008 = "warning"
         assert_eq!(config.rules.get("SL008"), Some(&RuleSeverity::Warning));
     }
 
-    fn is_excluded(ov: &Gitignore, path: &str) -> bool {
-        matches!(ov.matched(path, false), ignore::Match::Ignore(_))
+    fn is_excluded(ov: &GlobSet, path: &str) -> bool {
+        ov.is_match(path)
     }
 
     #[test]
     fn default_excludes_venv_directories() {
         let config = Config::default();
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, ".venv/app.py"));
         assert!(is_excluded(&ov, "venv/app.py"));
@@ -530,7 +531,7 @@ SL008 = "warning"
     #[test]
     fn default_excludes_node_modules_and_cache() {
         let config = Config::default();
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, "node_modules/some_lib/file.py"));
         assert!(is_excluded(&ov, "project/node_modules/pkg/index.py"));
@@ -541,7 +542,7 @@ SL008 = "warning"
     #[test]
     fn default_excludes_dot_directories() {
         let config = Config::default();
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, ".git/index.py"));
         assert!(is_excluded(&ov, ".tox/some.py"));
@@ -554,7 +555,7 @@ SL008 = "warning"
     #[test]
     fn default_excludes_pyc_and_pyo_files() {
         let config = Config::default();
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, "foo.pyc"));
         assert!(is_excluded(&ov, "bar.pyo"));
@@ -564,7 +565,7 @@ SL008 = "warning"
     #[test]
     fn default_excludes_allows_normal_python_files() {
         let config = Config::default();
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(!is_excluded(&ov, "src/main.py"));
         assert!(!is_excluded(&ov, "app.py"));
@@ -579,7 +580,7 @@ SL008 = "warning"
         let mut config = Config::default();
         config.extend_exclude = Some(vec!["my_internal/**".to_string()]);
 
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, ".venv/app.py"));
         assert!(is_excluded(&ov, "my_internal/secret.py"));
@@ -591,7 +592,7 @@ SL008 = "warning"
         let mut config = Config::default();
         config.exclude = Some(vec!["src/**".to_string(), "tests/test_*.py".to_string()]);
 
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, "src/main.py"));
         assert!(is_excluded(&ov, "tests/test_app.py"));
@@ -608,7 +609,7 @@ SL008 = "warning"
         let mut config = Config::default();
         config.exclude = Some(vec![]);
 
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(!is_excluded(&ov, ".venv/app.py"));
         assert!(!is_excluded(&ov, "node_modules/pkg.py"));
@@ -620,7 +621,7 @@ SL008 = "warning"
         let mut config = Config::default();
         config.extend_exclude = Some(vec![]);
 
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
 
         assert!(is_excluded(&ov, ".venv/app.py"));
         assert!(is_excluded(&ov, "node_modules/pkg.py"));
@@ -649,7 +650,7 @@ exclude = ["generated/**", "third_party/**"]
         );
         assert!(config.extend_exclude.is_none());
 
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
         assert!(is_excluded(&ov, "generated/code.py"));
         assert!(is_excluded(&ov, "third_party/lib.py"));
         assert!(
@@ -678,7 +679,7 @@ extend-exclude = ["generated/**"]
         );
         assert!(config.exclude.is_none());
 
-        let ov = config.build_overrides().unwrap();
+        let ov = config.build_exclude_globset().unwrap();
         assert!(is_excluded(&ov, "generated/code.py"));
         assert!(
             is_excluded(&ov, ".venv/app.py"),

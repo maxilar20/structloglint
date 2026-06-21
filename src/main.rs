@@ -3,6 +3,7 @@ use std::io;
 use std::process;
 
 use clap::Parser;
+use globset::Candidate;
 use ignore::WalkBuilder;
 use rustpython_parser::Parse;
 use structloglint::config;
@@ -78,14 +79,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut total_errors = 0usize;
     let mut total_warnings = 0usize;
 
-    let gi = config.build_overrides()?;
+    let start_path = std::path::PathBuf::from(&args.path);
+    let exclude_set = config.build_exclude_globset()?;
 
-    let files: Vec<_> = WalkBuilder::new(&args.path)
+    let files: Vec<_> = WalkBuilder::new(&start_path)
         .standard_filters(false)
+        .hidden(false)
         .filter_entry(move |entry| {
-            let path = entry.path();
-            let is_dir = entry.file_type().is_some_and(|ft| ft.is_dir());
-            !matches!(gi.matched(path, is_dir), ignore::Match::Ignore(_))
+            let rel = entry
+                .path()
+                .strip_prefix(&start_path)
+                .unwrap_or(entry.path());
+            let file_path = Candidate::new(rel);
+            let file_basename = rel.file_name().map(Candidate::new);
+            !exclude_set.is_match_candidate(&file_path)
+                && !file_basename.is_some_and(|b| exclude_set.is_match_candidate(&b))
         })
         .build()
         .filter_map(|e| e.ok())
