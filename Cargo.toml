@@ -1,6 +1,6 @@
 [package]
 name = "structloglint"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2024"
 description = "A fast, opinionated linter for structlog log calls in Python"
 license = "MIT"
