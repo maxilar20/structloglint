@@ -2,7 +2,7 @@
 
 A fast, opinionated linter for [structlog](https://www.structlog.org/) log calls in Python. Written in Rust.
 
-> **Status: Early development (v0.3.0)**
+> **Status: Early development**
 
 ## Installation
 
