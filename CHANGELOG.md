@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.4.1...structloglint-v0.5.0) (2026-06-22)
+
+
+### Features
+
+* Add parallel file processing with Rayon ([f4c8b1e](https://github.com/maxilar20/structloglint/commit/f4c8b1e7e4871f39bab4878be68a60f22ece3484))
+* show number of statements tested in summary output ([a7e3637](https://github.com/maxilar20/structloglint/commit/a7e3637011e6f906a4b6359ed580e6096ab54ca2))
+
+
+### Documentation
+
+* fix GitHub URL and add PyPI metadata, expand config examples ([9cf87e3](https://github.com/maxilar20/structloglint/commit/9cf87e3eefc2403b53e5b15f5fcd558a4f156da5))
+
+
+### Miscellaneous
+
+* Remove version number from README status badge ([dd5e244](https://github.com/maxilar20/structloglint/commit/dd5e244598333f3822032c01114c918b61cd0f53))
+
 ## [0.4.1](https://github.com/maxilar20/structloglint/compare/structloglint-v0.4.0...structloglint-v0.4.1) (2026-06-22)
 
 
