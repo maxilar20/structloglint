@@ -32,13 +32,17 @@ analysis such as import tracing, type inference, or assignment tracking.
 
 ### Prerequisites
 
-A file is only checked if it contains a structlog import at the top level:
+By default, a file is only checked if it contains a structlog import at the top level:
 
 ```python
 import structlog
 # or
 from structlog import get_logger
 ```
+
+This heuristic can be disabled by setting `check-imports = false` in your
+configuration, which will cause all files to be checked regardless of whether
+they import `structlog` or not.
 
 ### What is detected
 
@@ -374,6 +378,7 @@ SL007 = "off"        # disable loop check
 | `max-event-length` | integer | `30` | Maximum event string length (SL009). |
 | `event-case-style` | string | `"snake_case"` | Required event case style (SL008). |
 | `loop-log-level` | string | `"info"` | Minimum level that triggers a flag inside loops (SL007). |
+| `check-imports` | boolean | `true` | Whether to require a structlog import before analyzing a file. Set to `false` to lint all files. |
 
 ### Per-rule severity overrides (`[tool.structloglint.rules]`)
 

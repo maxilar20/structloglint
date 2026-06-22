@@ -13,6 +13,7 @@ pub struct Config {
     pub case_style: CaseStyle,
     pub max_event_length: usize,
     pub min_loop_log_level: LogLevel,
+    pub check_imports: bool,
     pub select: Option<Vec<String>>,
     pub ignore: Option<Vec<String>>,
     pub rules: HashMap<String, RuleSeverity>,
@@ -27,6 +28,7 @@ impl Default for Config {
             case_style: CaseStyle::SnakeCase,
             max_event_length: 30,
             min_loop_log_level: LogLevel::Info,
+            check_imports: true,
             select: None,
             ignore: None,
             rules: HashMap::new(),
@@ -57,6 +59,8 @@ struct RawConfig {
     event_case_style: Option<String>,
     max_event_length: Option<usize>,
     loop_log_level: Option<String>,
+    #[serde(default)]
+    check_imports: Option<bool>,
     #[serde(default)]
     select: Option<Vec<String>>,
     #[serde(default)]
@@ -117,6 +121,7 @@ impl RawConfig {
             case_style,
             max_event_length: self.max_event_length.unwrap_or(defaults.max_event_length),
             min_loop_log_level,
+            check_imports: self.check_imports.unwrap_or(defaults.check_imports),
             select: self.select,
             ignore: self.ignore,
             rules,

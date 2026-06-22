@@ -6,7 +6,7 @@ use crate::models::Finding;
 use crate::rules;
 
 pub fn analyze<'a>(stmts: &'a Suite, config: &Config) -> Vec<Finding<'a>> {
-    if !has_structlog_import(stmts) {
+    if config.check_imports && !has_structlog_import(stmts) {
         return vec![];
     }
     stmts

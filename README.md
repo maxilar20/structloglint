@@ -7,7 +7,7 @@ A fast, opinionated linter for [structlog](https://www.structlog.org/) log calls
 ## Installation
 
 ```bash
-uv pip install structloglint
+pip install structloglint
 ```
 
 ## Usage

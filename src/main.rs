@@ -44,6 +44,20 @@ struct Args {
 
     #[arg(long, value_name = "PATTERN", value_delimiter = ',')]
     extend_exclude: Option<Vec<String>>,
+
+    #[arg(
+        long = "check-imports",
+        overrides_with = "no_check_imports",
+        default_value_t = false
+    )]
+    check_imports: bool,
+
+    #[arg(
+        long = "no-check-imports",
+        overrides_with = "check_imports",
+        default_value_t = false
+    )]
+    no_check_imports: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -74,6 +88,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     if args.extend_exclude.is_some() {
         config.extend_exclude = args.extend_exclude;
+    }
+    if args.check_imports {
+        config.check_imports = true;
+    } else if args.no_check_imports {
+        config.check_imports = false;
     }
     let mut stdout = io::stdout().lock();
     let mut total_errors = 0usize;
