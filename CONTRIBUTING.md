@@ -9,7 +9,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/maeldorne/structloglint.git
+git clone https://github.com/maxilar20/structloglint.git
 cd structloglint
 make install-hooks
 ```

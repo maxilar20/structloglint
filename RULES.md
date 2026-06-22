@@ -277,7 +277,7 @@ their current case convention.
 structloglint --file path/to/file.py --fix SL008
 
 # Convert all events to camelCase
-structloglint --file path/to/file.py --fix SL008 --event-case-style camelCase
+structloglint --file path/to/file.py --fix SL008 --event-case-style camel_case
 ```
 
 ```python
@@ -303,10 +303,15 @@ Supported values for `event-case-style`:
 | Value | Example |
 |-------|---------|
 | `snake_case` | `user_logged_in` |
-| `kebab-case` | `user-logged-in` |
-| `camelCase` | `userLoggedIn` |
-| `PascalCase` | `UserLoggedIn` |
-| `SCREAMING_SNAKE_CASE` | `USER_LOGGED_IN` |
+| `kebab_case` | `user-logged-in` |
+| `camel_case` | `userLoggedIn` |
+| `pascal_case` | `UserLoggedIn` |
+| `constant_case` | `USER_LOGGED_IN` |
+| `lower_case` | `user logged in` |
+| `upper_case` | `USER LOGGED IN` |
+| `title_case` | `User Logged In` |
+| `sentence_case` | `User logged in` |
+| `train_case` | `User-Logged-In` |
 
 ---
 

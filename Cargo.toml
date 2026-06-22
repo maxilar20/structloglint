@@ -4,7 +4,7 @@ version = "0.4.1"
 edition = "2024"
 description = "A fast, opinionated linter for structlog log calls in Python"
 license = "MIT"
-repository = "https://github.com/maeldorne/structloglint"
+repository = "https://github.com/maxilar20/structloglint"
 
 [[bin]]
 name = "structloglint"
