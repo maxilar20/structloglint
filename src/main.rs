@@ -97,6 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut stdout = io::stdout().lock();
     let mut total_errors = 0usize;
     let mut total_warnings = 0usize;
+    let mut total_statements = 0usize;
 
     let start_path = std::path::PathBuf::from(&args.path);
     let exclude_set = config.build_exclude_globset()?;
@@ -138,9 +139,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
         total_errors += errors;
         total_warnings += warnings;
+        total_statements += findings.len();
     }
 
-    display::print_summary(&mut stdout, total_errors, total_warnings)?;
+    display::print_summary(&mut stdout, total_errors, total_warnings, total_statements)?;
 
     if total_errors > 0 || total_warnings > 0 {
         process::exit(1);

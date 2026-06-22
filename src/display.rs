@@ -95,9 +95,25 @@ pub fn print_diagnostics(
     Ok((errors, warnings))
 }
 
-pub fn print_summary(w: &mut impl Write, errors: usize, warnings: usize) -> io::Result<()> {
+pub fn print_summary(
+    w: &mut impl Write,
+    errors: usize,
+    warnings: usize,
+    statements: usize,
+) -> io::Result<()> {
+    let stmt_label = if statements == 1 {
+        "statement"
+    } else {
+        "statements"
+    };
     if errors == 0 && warnings == 0 {
-        writeln!(w, "{}", "All checks passed!".green().bold())
+        writeln!(
+            w,
+            "{} ({} {} tested)",
+            "All checks passed!".green().bold(),
+            statements,
+            stmt_label,
+        )
     } else {
         let mut parts = Vec::new();
         if errors > 0 {
@@ -108,7 +124,13 @@ pub fn print_summary(w: &mut impl Write, errors: usize, warnings: usize) -> io::
             let label = if warnings == 1 { "warning" } else { "warnings" };
             parts.push(format!("{} {}", warnings, label));
         }
-        writeln!(w, "{}", format!("Found {}.", parts.join(", ")).bold())
+        writeln!(
+            w,
+            "{} ({} {} tested)",
+            format!("Found {}.", parts.join(", ")).bold(),
+            statements,
+            stmt_label,
+        )
     }
 }
 
@@ -372,39 +394,63 @@ mod tests {
     fn summary_all_passed() {
         init();
         let mut buf = Vec::new();
-        print_summary(&mut buf, 0, 0).unwrap();
+        print_summary(&mut buf, 0, 0, 42).unwrap();
         let output = String::from_utf8(buf).unwrap();
         assert!(output.contains("All checks passed!"));
+        assert!(output.contains("42 statements"));
+    }
+
+    #[test]
+    fn summary_all_passed_zero_statements() {
+        init();
+        let mut buf = Vec::new();
+        print_summary(&mut buf, 0, 0, 0).unwrap();
+        let output = String::from_utf8(buf).unwrap();
+        assert!(output.contains("All checks passed!"));
+        assert!(output.contains("0 statements"));
     }
 
     #[test]
     fn summary_errors_only() {
         init();
         let mut buf = Vec::new();
-        print_summary(&mut buf, 3, 0).unwrap();
+        print_summary(&mut buf, 3, 0, 10).unwrap();
         let output = String::from_utf8(buf).unwrap();
         assert!(output.contains("3 errors"));
         assert!(!output.contains("warning"));
+        assert!(output.contains("10 statements"));
     }
 
     #[test]
     fn summary_warnings_only() {
         init();
         let mut buf = Vec::new();
-        print_summary(&mut buf, 0, 2).unwrap();
+        print_summary(&mut buf, 0, 2, 5).unwrap();
         let output = String::from_utf8(buf).unwrap();
         assert!(output.contains("2 warnings"));
         assert!(!output.contains("error"));
+        assert!(output.contains("5 statements"));
     }
 
     #[test]
     fn summary_errors_and_warnings() {
         init();
         let mut buf = Vec::new();
-        print_summary(&mut buf, 5, 3).unwrap();
+        print_summary(&mut buf, 5, 3, 20).unwrap();
         let output = String::from_utf8(buf).unwrap();
         assert!(output.contains("5 errors"));
         assert!(output.contains("3 warnings"));
+        assert!(output.contains("20 statements"));
+    }
+
+    #[test]
+    fn summary_single_statement() {
+        init();
+        let mut buf = Vec::new();
+        print_summary(&mut buf, 0, 0, 1).unwrap();
+        let output = String::from_utf8(buf).unwrap();
+        assert!(output.contains("1 statement"));
+        assert!(!output.contains("1 statements"));
     }
 
     #[test]
