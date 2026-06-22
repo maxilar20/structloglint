@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/maxilar20/structloglint/compare/structloglint-v0.4.0...structloglint-v0.4.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* Make the import structlog heuristic optional for repos with a ([d68ec97](https://github.com/maxilar20/structloglint/commit/d68ec97a452a3ca10b3643fcabe1ad587d3f84e3))
+
 ## [0.4.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.3.0...structloglint-v0.4.0) (2026-06-21)
 
 
