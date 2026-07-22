@@ -14,7 +14,7 @@ fn analyze_fixture(fixture: &str, file: &str) -> Vec<(String, Status)> {
     let full_path = fixture_dir.join(file);
     let source = std::fs::read_to_string(&full_path).unwrap();
     let stmts = Suite::parse(&source, &full_path.to_string_lossy()).unwrap();
-    let findings = analyzer::analyze(&stmts, &config);
+    let findings = analyzer::analyze(&stmts, &config, &source);
 
     findings
         .into_iter()
@@ -150,7 +150,7 @@ fn no_structlog_import_produces_no_findings() {
     let config = Config::default();
     let source = std::fs::read_to_string(fixture_dir.join("app.py")).unwrap();
     let stmts = Suite::parse(&source, "app.py").unwrap();
-    let findings = analyzer::analyze(&stmts, &config);
+    let findings = analyzer::analyze(&stmts, &config, &source);
     assert!(findings.is_empty());
 }
 
