@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.5.0...structloglint-v0.6.0) (2026-07-22)
+
+
+### Features
+
+* inline suppressions ([#13](https://github.com/maxilar20/structloglint/issues/13)) ([07f2897](https://github.com/maxilar20/structloglint/commit/07f2897aa7c7c18d33eaee49feb7b78360631984))
+
+
+### Bug Fixes
+
+* Update README links to absolute URLs ([2e2969e](https://github.com/maxilar20/structloglint/commit/2e2969e6fe866c6702cf9e7641dc58777edc2fde))
+
 ## [0.5.0](https://github.com/maxilar20/structloglint/compare/structloglint-v0.4.1...structloglint-v0.5.0) (2026-06-22)
 
 
