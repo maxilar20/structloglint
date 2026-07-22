@@ -17,7 +17,7 @@
 - [x] Default excludes for venv, node_modules, caches, etc.
 - [x] Non-zero exit codes for CI gating
 - [ ] `--fix` flag (auto-fix in-place; SL008 fix model already exists)
-- [ ] Inline suppression (`# noqa: SL001` comments)
+- [x] Inline suppression (`# noqa: SL001` comments)
 
 ## Should Have
 

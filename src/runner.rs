@@ -32,7 +32,7 @@ pub fn process_source(
 ) -> Result<FileResult, String> {
     let stmts = rustpython_parser::ast::Suite::parse(source, file_path)
         .map_err(|e| format!("failed to parse: {e}"))?;
-    let findings = analyzer::analyze(&stmts, config);
+    let findings = analyzer::analyze(&stmts, config, source);
     let mut buf = Vec::new();
     let (errors, warnings) =
         display::print_diagnostics(&mut buf, &findings, file_path, source, output_format)
@@ -383,6 +383,85 @@ mod tests {
 
         assert!(results.succeeded.is_empty());
         assert!(results.failed.is_empty());
+    }
+
+    // ── Inline suppression tests ────────────────────────────────────
+
+    #[test]
+    fn noqa_suppress_all_rules_on_line() {
+        init();
+        let source = format!("{IMPORT}log.info('user_logged_in', 'extra')  # noqa\n");
+        let config = Config::default();
+        let result = process_source(&source, "test.py", &config, OutputFormat::Concise).unwrap();
+
+        assert_eq!(result.errors, 0);
+        assert_eq!(result.warnings, 0);
+    }
+
+    #[test]
+    fn noqa_suppress_specific_rule() {
+        init();
+        let source = format!("{IMPORT}log.info(f'UserLoggedIn', 'extra')  # noqa: SL001\n");
+        let config = Config::default();
+        let result = process_source(&source, "test.py", &config, OutputFormat::Concise).unwrap();
+
+        let output = String::from_utf8(result.buf).unwrap();
+        assert!(!output.contains("SL001"), "SL001 should be suppressed");
+        assert!(output.contains("SL002"), "SL002 should still be reported");
+    }
+
+    #[test]
+    fn noqa_multiple_specific_rules() {
+        init();
+        let source = format!("{IMPORT}log.info(f'UserLoggedIn', 'extra')  # noqa: SL001, SL002\n");
+        let config = Config::default();
+        let result = process_source(&source, "test.py", &config, OutputFormat::Concise).unwrap();
+
+        assert_eq!(result.errors, 0, "all violations should be suppressed");
+        assert_eq!(result.warnings, 0, "all warnings should be suppressed");
+    }
+
+    #[test]
+    fn noqa_only_affects_own_line() {
+        init();
+        let source = format!("{IMPORT}log.info('a', 'extra')  # noqa\nlog.info('b', 'extra')\n");
+        let config = Config::default();
+        let result = process_source(&source, "test.py", &config, OutputFormat::Concise).unwrap();
+
+        let output = String::from_utf8(result.buf).unwrap();
+        assert!(
+            output.contains("test.py:3:"),
+            "second line should still be reported"
+        );
+        assert!(
+            !output.contains("test.py:2:"),
+            "first line should be suppressed"
+        );
+    }
+
+    #[test]
+    fn noqa_no_space_after_hash() {
+        init();
+        let source = format!("{IMPORT}log.info('user_logged_in', 'extra')  #noqa\n");
+        let config = Config::default();
+        let result = process_source(&source, "test.py", &config, OutputFormat::Concise).unwrap();
+
+        assert_eq!(result.errors, 0);
+        assert_eq!(result.warnings, 0);
+    }
+
+    #[test]
+    fn noqa_lowercase_rule_id_still_suppresses() {
+        init();
+        let source = format!("{IMPORT}log.info('user_logged_in', 'extra')  # noqa: sl001\n");
+        let config = Config::default();
+        let result = process_source(&source, "test.py", &config, OutputFormat::Concise).unwrap();
+
+        let output = String::from_utf8(result.buf).unwrap();
+        assert!(
+            !output.contains("SL001"),
+            "lowercase sl001 should suppress SL001"
+        );
     }
 
     #[test]

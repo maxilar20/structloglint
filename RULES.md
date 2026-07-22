@@ -23,6 +23,52 @@ configured in `pyproject.toml` (see [Configuration](#configuration)).
 
 ---
 
+## Inline Suppression
+
+Individual violations can be suppressed on a per-line basis using
+`# noqa` comments, similar to [Ruff](https://docs.astral.sh/ruff/linter/#error-suppression).
+
+### Usage
+
+Add a `# noqa` comment at the end of a line with a `structlog` log call:
+
+```python
+# suppress all rules on this line
+log.info("user_logged_in", user_id)  # noqa
+
+# suppress specific rules
+log.info("user_logged_in", user_id)  # noqa: SL001
+
+# suppress multiple rules
+log.info("user_logged_in", user_id=user.get_id())  # noqa: SL001, SL008
+```
+
+### Format
+
+| Comment | Effect |
+|---------|--------|
+| `# noqa` | Suppress all rules on the line |
+| `# noqa: SL001` | Suppress only SL001 on the line |
+| `# noqa: SL001, SL002` | Suppress SL001 and SL002 on the line |
+| `#noqa` / `#noqa:SL001` | Same as above — whitespace is flexible |
+| `# noqa: sl001` | Rule codes are case-insensitive |
+
+The comment must appear on the **same line** as the offending log call,
+after the code (trailing comment). It does not apply to preceding or
+following lines.
+
+### Notes
+
+- Inline suppression is useful for one-off exceptions where you understand
+  the rule but have a legitimate reason to violate it.
+- For project-wide rules that you consistently don't want, prefer
+  configuring `ignore` or per-rule severity `"off"` in `pyproject.toml`
+  (see [Configuration](#configuration)).
+- Suppressed rules are completely omitted from the output and do not
+  count toward the error/warning totals.
+
+---
+
 ## Logger Detection
 
 `structloglint` uses a **naming convention heuristic** to identify structlog
