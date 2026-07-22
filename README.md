@@ -18,7 +18,7 @@ structloglint --path . --select SL001,SL002 --ignore SL007 --output-format conci
 structloglint --path . --max-event-length 40 --event-case-style camel_case
 ```
 
-See [RULES.md](RULES.md) for the full list of rules (SL001--SL009) and configuration options.
+See [RULES.md](https://github.com/maxilar20/structloglint/blob/main/RULES.md) for the full list of rules (SL001--SL009) and configuration options.
 
 ## Configuration
 
@@ -67,9 +67,9 @@ check-imports = true
 SL007 = "off"
 ```
 
-See [RULES.md](RULES.md#configuration) for all configuration options and rule descriptions.
+See [RULES.md](https://github.com/maxilar20/structloglint/blob/main/RULES.md#configuration) for all configuration options and rule descriptions.
 
-See [ROADMAP.md](ROADMAP.md) for the project plan.
+See [ROADMAP.md](https://github.com/maxilar20/structloglint/blob/main/ROADMAP.md) for the project plan.
 
 ## License
 
